@@ -1,5 +1,5 @@
 import '@dotenvx/dotenvx/config';
-import z from 'zod/v4';
+import z from 'zod';
 
 export const config = z
   .object({
