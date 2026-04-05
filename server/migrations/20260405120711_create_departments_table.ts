@@ -11,7 +11,6 @@ export async function up(knex: Knex): Promise<void> {
             .inTable('faculties')
             .onDelete('CASCADE')
             .onUpdate('CASCADE');
-
         table.timestamps(true, true);
     });
 }

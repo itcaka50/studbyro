@@ -6,18 +6,20 @@ export async function up(knex: Knex): Promise<void> {
         table.string('faculty_number').primary().index();
         table.string('ucn').unique().notNullable();
         table.enum('financing', ['държавна поръчка', 'платено обучение']).notNullable();
-        table.string('adress').notNullable();
+        table.string('address').notNullable();
         table
             .integer('user_id')
             .notNullable()
-            .references('users')
             .unique()
+            .references('id')
+            .inTable('users')
             .onDelete('CASCADE')
             .onUpdate('CASCADE');
         table
             .integer('curriculum_id')
             .notNullable()
-            .references('curriculums')
+            .references('id')
+            .inTable('curriculums')
             .onDelete('CASCADE')
             .onUpdate('CASCADE');
         table.timestamps(true, true);

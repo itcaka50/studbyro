@@ -7,7 +7,8 @@ export async function up(knex: Knex): Promise<void> {
         table
             .integer('student_id')
             .notNullable()
-            .references('students')
+            .references('faculty_number')
+            .inTable('students')
             .onDelete('CASCADE')
             .onUpdate('CASCADE');
         table.timestamps(true, true);

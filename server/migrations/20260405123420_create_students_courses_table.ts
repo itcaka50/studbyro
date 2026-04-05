@@ -8,15 +8,18 @@ export async function up(knex: Knex): Promise<void> {
         table
             .integer('student_id')
             .notNullable()
-            .references('students')
+            .references('faculty_number')
+            .inTable('students')
             .onDelete('CASCADE')
             .onUpdate('CASCADE');
         table
             .integer('course_id')
             .notNullable()
-            .references('courses')
+            .references('id')
+            .inTable('courses')
             .onDelete('CASCADE')
             .onUpdate('CASCADE');
+        table.unique(['student_id', 'course_id']);
         table.timestamps(true, true);
     })
 }
