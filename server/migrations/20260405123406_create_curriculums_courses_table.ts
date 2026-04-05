@@ -14,7 +14,8 @@ export async function up(knex: Knex): Promise<void> {
         table
             .integer('course_id')
             .notNullable()
-            .references('courses')
+            .references('id')
+            .inTable('courses')
             .onDelete('CASCADE')
             .onUpdate('CASCADE');
         table.integer('credits').notNullable();

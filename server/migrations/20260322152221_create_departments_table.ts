@@ -5,7 +5,7 @@ export async function up(knex: Knex): Promise<void> {
     await knex.schema.createTableIfNotExists("departments", (table) => {
         table.increments('id').primary();
         table.string('name').notNullable().unique();
-        table.string('faculty_id')
+        table.integer('faculty_id')
             .notNullable()
             .references('id')
             .inTable('faculties')

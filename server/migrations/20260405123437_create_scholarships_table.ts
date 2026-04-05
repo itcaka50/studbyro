@@ -7,7 +7,7 @@ export async function up(knex: Knex): Promise<void> {
         table.string('type').notNullable(); 
         table.boolean('status').defaultTo('0').notNullable();
         table
-            .integer('student_id')
+            .string('student_id')
             .notNullable()
             .references('faculty_number')
             .inTable('students')

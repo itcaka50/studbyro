@@ -6,7 +6,7 @@ export async function up(knex: Knex): Promise<void> {
         table.increments('id').primary();
         table.integer('grade').unsigned().nullable();
         table
-            .integer('student_id')
+            .string('student_id')
             .notNullable()
             .references('faculty_number')
             .inTable('students')
