@@ -5,9 +5,10 @@
   "license": "GPL-3.0",
   "author": "Hristo Atanasov, Yoan Vasilev",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "./src/routes/index.ts",
   "scripts": {
-    "start": "nodemon",
+    "dev": "nodemon src/index.ts",
+    "start": "ts-node src/index.ts",
     "test": "npm test",
     "knex:make-migration": "knex migrate:make -x ts",
     "knex:migrate": "knex migrate:latest",
