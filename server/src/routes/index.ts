@@ -5,11 +5,10 @@ import usersRoutes from './users.routes';
 import coursesRoutes from './courses.routes';
 import facultiesRoutes from './faculties.routes';
 
-const router = Router();
+export const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/users', usersRoutes);
 router.use('/courses', coursesRoutes);
 router.use('/faculties', facultiesRoutes);
 
-export default router;

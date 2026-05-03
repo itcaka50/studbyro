@@ -24,12 +24,12 @@ export default defineConfig([
           ignoreMiddleExtensions: true,
         },
       ],
-      'check-file/folder-naming-convention': [
-        'error',
-        {
-          '**/': 'KEBAB_CASE',
-        },
-      ],
+      // 'check-file/folder-naming-convention': [
+      //   'error',
+      //   {
+      //     '**/': 'KEBAB_CASE',
+      //   },
+      // ],
       'prefer-const': ['error'],
       'no-unused-vars': 'off', // base rule must be disabled as it can report incorrect errors
       '@typescript-eslint/no-unused-vars': 'warn',
