@@ -11,4 +11,3 @@ router.use('/auth', authRoutes);
 router.use('/users', usersRoutes);
 router.use('/courses', coursesRoutes);
 router.use('/faculties', facultiesRoutes);
-

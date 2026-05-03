@@ -5,7 +5,7 @@ import { Router } from 'express';
 const router = Router();
 
 router.get('/test', (req, res) => {
-  res.json({ message: 'Auth е тук!' });
+    res.json({ message: 'Auth е тук!' });
 });
 
 export default router;

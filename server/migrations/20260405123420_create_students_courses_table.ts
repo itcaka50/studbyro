@@ -1,5 +1,4 @@
-import type { Knex } from "knex";
-
+import type { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
     await knex.schema.createTableIfNotExists('students_courses', (table) => {
@@ -21,11 +20,9 @@ export async function up(knex: Knex): Promise<void> {
             .onUpdate('CASCADE');
         table.unique(['student_id', 'course_id']);
         table.timestamps(true, true);
-    })
+    });
 }
-
 
 export async function down(knex: Knex): Promise<void> {
     await knex.schema.dropTableIfExists('students_courses');
 }
-

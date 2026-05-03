@@ -1,5 +1,4 @@
-import type { Knex } from "knex";
-
+import type { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
     await knex.schema.createTableIfNotExists('dormitories', (table) => {
@@ -12,11 +11,9 @@ export async function up(knex: Knex): Promise<void> {
             .onDelete('CASCADE')
             .onUpdate('CASCADE');
         table.timestamps(true, true);
-    })
+    });
 }
-
 
 export async function down(knex: Knex): Promise<void> {
     await knex.schema.dropTableIfExists('dormitories');
 }
-

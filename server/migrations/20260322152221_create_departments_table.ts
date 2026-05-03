@@ -1,11 +1,11 @@
-import type { Knex } from "knex";
-
+import type { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
-    await knex.schema.createTableIfNotExists("departments", (table) => {
+    await knex.schema.createTableIfNotExists('departments', (table) => {
         table.increments('id').primary();
         table.string('name').notNullable().unique();
-        table.integer('faculty_id')
+        table
+            .integer('faculty_id')
             .notNullable()
             .references('id')
             .inTable('faculties')
@@ -15,8 +15,6 @@ export async function up(knex: Knex): Promise<void> {
     });
 }
 
-
 export async function down(knex: Knex): Promise<void> {
     await knex.schema.dropTableIfExists('departments');
 }
-

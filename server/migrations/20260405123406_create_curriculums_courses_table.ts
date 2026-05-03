@@ -1,5 +1,4 @@
-import type { Knex } from "knex";
-
+import type { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
     await knex.schema.createTableIfNotExists('curriculums_courses', (table) => {
@@ -21,11 +20,9 @@ export async function up(knex: Knex): Promise<void> {
         table.integer('credits').notNullable();
         table.timestamps(true, true);
         table.unique(['curriculum_id', 'course_id']);
-    })
+    });
 }
-
 
 export async function down(knex: Knex): Promise<void> {
     await knex.schema.dropTableIfExists('curriculums_courses');
 }
-

@@ -1,10 +1,9 @@
-import type { Knex } from "knex";
-
+import type { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
     await knex.schema.createTableIfNotExists('scholarships', (table) => {
         table.increments('id').primary();
-        table.string('type').notNullable(); 
+        table.string('type').notNullable();
         table.boolean('status').defaultTo('0').notNullable();
         table
             .string('student_id')
@@ -14,11 +13,9 @@ export async function up(knex: Knex): Promise<void> {
             .onDelete('CASCADE')
             .onUpdate('CASCADE');
         table.timestamps(true, true);
-    })
+    });
 }
-
 
 export async function down(knex: Knex): Promise<void> {
     await knex.schema.dropTableIfExists('scholarships');
 }
-
