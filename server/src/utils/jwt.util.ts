@@ -2,7 +2,10 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import z from 'zod';
 
-const payloadSchema = z.object({ id: z.coerce.number() });
+const payloadSchema = z.object({
+    id: z.coerce.number(),
+    isAdmin: z.boolean().optional(),
+});
 type Payload = z.infer<typeof payloadSchema>;
 
 export class JwtUtil {

@@ -1,4 +1,9 @@
-import { User } from '../models/user';
+import { User } from '../models/user.model';
+
+export interface UserFilters {
+    isAdmin?: string;
+    name?: string;
+}
 
 export const getUserProfile = async (userId: number) => {
     const user = await User.query().findById(userId);
@@ -32,7 +37,7 @@ export const updateUserProfile = async (
     return safeUserData;
 };
 
-export const getAllUsers = async (filters: any = {}) => {
+export const getAllUsers = async (filters: UserFilters = {}) => {
     let query = User.query();
 
     if (filters.isAdmin !== undefined) {

@@ -1,5 +1,8 @@
-import { User } from '../models/user';
+import { User } from '../models/user.model';
 import { hashPassword, comparePasswords } from '../utils/hash.util';
+import { JwtUtil } from '../utils/jwt.util';
+
+const jwtUtil = new JwtUtil();
 
 export interface RegisterData {
     username: string;
@@ -22,11 +25,15 @@ export const registerUser = async (userData: RegisterData) => {
         throw new Error('Това потребителско име вече се използва!');
     }
 
-    const existingPhone = await User.query().findOne({
-        phone: userData.phoneNumber,
-    });
-    if (existingPhone) {
-        throw new Error('Потребител с този телефонен номер вече съществува!');
+    if (userData.phoneNumber) {
+        const existingPhone = await User.query().findOne({
+            phoneNumber: userData.phoneNumber,
+        });
+        if (existingPhone) {
+            throw new Error(
+                'Потребител с този телефонен номер вече съществува!',
+            );
+        }
     }
 
     const hashedPassword = await hashPassword(userData.password);
@@ -40,9 +47,11 @@ export const registerUser = async (userData: RegisterData) => {
         isAdmin: false,
     });
 
-    return newUser;
+    const token = jwtUtil.sign({ id: newUser.id });
+
+    return { user: newUser, token };
 };
-//DOBAVI JWT LOGIC MY MAN
+
 export const loginUser = async (email: string, plainPassword: string) => {
     const user = await User.query().findOne({ email });
 
@@ -59,5 +68,7 @@ export const loginUser = async (email: string, plainPassword: string) => {
         throw new Error('Грешен имейл или парола!');
     }
 
-    return user;
+    const token = jwtUtil.sign({ id: user.id });
+
+    return { user, token };
 };
