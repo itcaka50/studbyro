@@ -7,11 +7,13 @@ export const getProfile = async (
     next: NextFunction,
 ) => {
     try {
-        const user = res.locals.user;
+        const userId = res.locals.user.id;
+
+        const fullProfile = await userService.getUserProfile(userId);
 
         res.status(200).json({
             success: true,
-            data: user,
+            data: fullProfile,
         });
     } catch (error) {
         next(error);
@@ -19,7 +21,7 @@ export const getProfile = async (
 };
 
 export const updateProfile = async (
-    req: any,
+    req: Request,
     res: Response,
     next: NextFunction,
 ) => {

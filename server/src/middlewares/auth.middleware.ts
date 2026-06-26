@@ -1,39 +1,54 @@
-import { RequestHandler } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import * as userService from '../services/user.service';
-import * as jwtService from '../utils/jwt.util';
-import { User } from '../models/User.model';
-// import { AuthenticationError } from '../errors/AuthenticationError';
+import { JwtUtil } from '../utils/jwt.util';
+
+const jwtUtil = new JwtUtil();
 
 declare global {
-    // eslint-disable-next-line @typescript-eslint/no-namespace
     namespace Express {
         interface Locals {
-            user: any; // временно any или Omit<User, 'passwordHash'>
+            user: Awaited<ReturnType<typeof userService.getUserProfile>>;
         }
     }
 }
 
-export const authMiddleware: RequestHandler = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
+export const authMiddleware = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const authHeader = req.headers.authorization;
 
-    if (!authHeader?.startsWith('Bearer ')) {
-        throw new Error('Unauthenticated: Липсва токен');
+        if (!authHeader?.startsWith('Bearer ')) {
+            return res.status(401).json({
+                success: false,
+                message: 'Unauthenticated: Липсва токен',
+            });
+        }
+
+        const token = authHeader.replace('Bearer ', '');
+
+        const payload = jwtUtil.verify(token);
+
+        if (!payload || !payload.id) {
+            return res.status(401).json({
+                success: false,
+                message: 'Unauthenticated: Невалиден или изтекъл токен',
+            });
+        }
+
+        const user = await userService.getUserProfile(payload.id);
+
+        res.locals.user = user;
+
+        next();
+    } catch (error: any) {
+        return res.status(401).json({
+            success: false,
+            message:
+                error.message ||
+                'Unauthenticated: Грешка при проверка на достъпа',
+        });
     }
-
-    const token = authHeader.replace('Bearer ', '');
-
-    const payload = jwtService.verify(token);
-
-    if (!payload || !payload.id) {
-        throw new Error('Unauthenticated: Невалиден токен');
-    }
-
-    const user = await userService.getUserProfile(payload.id);
-
-    if (!user) {
-        throw new Error('Unauthenticated: Потребителят не съществува');
-    }
-
-    res.locals = { user };
-    next();
 };

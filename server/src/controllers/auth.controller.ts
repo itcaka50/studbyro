@@ -9,12 +9,13 @@ export const register = async (
     try {
         const userData = req.body;
 
-        const newUser = await authService.registerUser(userData);
+        const { user, token } = await authService.registerUser(userData);
 
         res.status(201).json({
             success: true,
             message: 'Успешна регистрация!',
-            data: newUser,
+            data: user,
+            token: token,
         });
     } catch (error) {
         next(error);
@@ -29,13 +30,13 @@ export const login = async (
     try {
         const { email, password } = req.body;
 
-        const user = await authService.loginUser(email, password);
+        const { user, token } = await authService.loginUser(email, password);
 
         res.status(200).json({
             success: true,
             message: 'Успешен вход!',
             data: user,
-            //JWT TOKEN !!!!
+            token: token,
         });
     } catch (error) {
         next(error);

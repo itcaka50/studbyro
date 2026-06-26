@@ -1,25 +1,29 @@
 import { Router } from 'express';
-import * as facultyController from '../controllers/faculty.controller';
+import * as scheduleController from '../controllers/schedule.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { requireAdmin } from '../middlewares/role.middleware';
 
 const router = Router();
 
-router.get('/', facultyController.listFaculties);
-router.get('/:id', facultyController.getFaculty);
+router.get('/course/:courseId', scheduleController.getCourseSchedule);
 
-router.post('/', authMiddleware, requireAdmin, facultyController.createFaculty);
+router.post(
+    '/',
+    authMiddleware,
+    requireAdmin,
+    scheduleController.createScheduleRecord,
+);
 router.put(
     '/:id',
     authMiddleware,
     requireAdmin,
-    facultyController.updateFaculty,
+    scheduleController.updateScheduleRecord,
 );
 router.delete(
     '/:id',
     authMiddleware,
     requireAdmin,
-    facultyController.deleteFaculty,
+    scheduleController.deleteScheduleRecord,
 );
 
 export default router;

@@ -1,63 +1,66 @@
 import { Request, Response, NextFunction } from 'express';
-import * as courseService from '../services/course.service';
+import * as departmentService from '../services/department.service';
 
-export const createCourse = async (
+export const createDepartment = async (
     req: Request,
     res: Response,
     next: NextFunction,
 ) => {
     try {
-        const courseData = req.body;
-        const newCourse = await courseService.createCourse(courseData);
+        const departmentData = req.body;
+        const newDepartment =
+            await departmentService.createDepartment(departmentData);
 
         res.status(201).json({
             success: true,
-            message: 'Курсът е създаден успешно!',
-            data: newCourse,
+            message: 'Катедрата е създадена успешно!',
+            data: newDepartment,
         });
     } catch (error) {
         next(error);
     }
 };
 
-export const getCourse = async (
+export const getDepartment = async (
     req: Request,
     res: Response,
     next: NextFunction,
 ) => {
     try {
         const { id } = req.params;
-        const course = await courseService.getCourseById(Number(id));
+        const department = await departmentService.getDepartmentById(
+            Number(id),
+        );
 
         res.status(200).json({
             success: true,
-            data: course,
+            data: department,
         });
     } catch (error) {
         next(error);
     }
 };
 
-export const listCourses = async (
+export const listDepartments = async (
     req: Request,
     res: Response,
     next: NextFunction,
 ) => {
     try {
         const filters = req.query;
-        const courses = await courseService.getAllCourses(filters);
+        const departments = await departmentService.getAllDepartments(filters);
 
         res.status(200).json({
             success: true,
-            count: courses.length,
-            data: courses,
+            count: departments.length,
+            data: departments,
         });
     } catch (error) {
         next(error);
     }
 };
 
-export const updateCourse = async (
+export const updateDepartment = async (
     req: Request,
     res: Response,
     next: NextFunction,
@@ -66,22 +69,22 @@ export const updateCourse = async (
         const { id } = req.params;
         const updateData = req.body;
 
-        const updatedCourse = await courseService.updateCourse(
+        const updatedDepartment = await departmentService.updateDepartment(
             Number(id),
             updateData,
         );
 
         res.status(200).json({
             success: true,
-            message: 'Курсът е обновен успешно!',
-            data: updatedCourse,
+            message: 'Катедрата е обновена успешно!',
+            data: updatedDepartment,
         });
     } catch (error) {
         next(error);
     }
 };
 
-export const deleteCourse = async (
+export const deleteDepartment = async (
     req: Request,
     res: Response,
     next: NextFunction,
@@ -89,11 +92,11 @@ export const deleteCourse = async (
     try {
         const { id } = req.params;
 
-        await courseService.deleteCourse(Number(id));
+        await departmentService.deleteDepartment(Number(id));
 
         res.status(200).json({
             success: true,
-            message: `Курсът с ID ${id} беше изтрит успешно.`,
+            message: `Катедрата с ID ${id} беше изтрита.`,
         });
     } catch (error) {
         next(error);
