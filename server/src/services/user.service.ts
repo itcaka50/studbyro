@@ -1,4 +1,6 @@
 import { User } from '../models/user.model';
+import { Teacher } from '../models/teacher.model';
+import { Student } from '../models/student.model';
 
 export interface UserFilters {
     isAdmin?: string;
@@ -38,11 +40,10 @@ export const updateUserProfile = async (
 };
 
 export const getAllUsers = async (filters: UserFilters = {}) => {
-    let query = User.query();
+    let query = User.query().withGraphFetched('[student, teacher]');
 
     if (filters.isAdmin !== undefined) {
-        const isAdminFilter = filters.isAdmin === 'true';
-        query = query.where('isAdmin', isAdminFilter);
+        query = query.where('isAdmin', filters.isAdmin === 'true');
     }
 
     if (filters.name) {
@@ -52,7 +53,7 @@ export const getAllUsers = async (filters: UserFilters = {}) => {
     const users = await query;
 
     return users.map((user) => {
-        const { passwordHash, ...safeUser } = user;
+        const { passwordHash, ...safeUser } = user as any;
         return safeUser;
     });
 };
@@ -65,4 +66,22 @@ export const deleteUser = async (userId: number) => {
     }
 
     return true;
+};
+
+export const createUserWithRole = async (
+    userData: any,
+    roleData: any,
+    role: 'student' | 'teacher' | 'user',
+) => {
+    return await User.transaction(async (trx) => {
+        const user = await User.query(trx).insert(userData);
+
+        if (role === 'student') {
+            await Student.query(trx).insert({ ...roleData, userId: user.id });
+        } else if (role === 'teacher') {
+            await Teacher.query(trx).insert({ ...roleData, userId: user.id });
+        }
+
+        return user;
+    });
 };
