@@ -2,6 +2,7 @@ import { Faculty } from '../models/faculty.model';
 
 export interface FacultyCreateData {
     name: string;
+    code: string;
 }
 
 export interface FacultyFilters {

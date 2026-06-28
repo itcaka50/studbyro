@@ -8,8 +8,6 @@ import teacherRoutes from './teachers.routes';
 import departmentRoutes from './departments.routes';
 import curriculumRoutes from './curriculums.routes';
 import scheduleRoutes from './schedules.routes';
-import scholarshipRoutes from './scholarships.routes';
-import dormitoryRoutes from './dormitories.routes';
 import userRoutes from './users.routes';
 
 const router = Router();
@@ -22,8 +20,6 @@ router.use('/teachers', teacherRoutes);
 router.use('/departments', departmentRoutes);
 router.use('/curriculums', curriculumRoutes);
 router.use('/schedules', scheduleRoutes);
-router.use('/scholarships', scholarshipRoutes);
-router.use('/dormitories', dormitoryRoutes);
 router.use('/users', userRoutes);
 
 export default router;

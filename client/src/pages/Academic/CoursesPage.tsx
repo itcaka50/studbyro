@@ -2,13 +2,15 @@ import React, {useState, useEffect} from 'react';
 import {coursesApi} from '../../api/courses.api';
 import {departmentsApi} from '../../api/departments.api';
 import {useAuth} from '../../context/auth.context';
+import {unwrapList} from '../../api/utils';
 
 interface Course {
     id: number;
     code: string;
     name: string;
-    credits: number;
-    department_id: number;
+    departmentId: number;
+    totalHours?: number;
+    link?: string;
 }
 
 interface Department {
@@ -29,8 +31,8 @@ export const CoursesPage = () => {
     const [formData, setFormData] = useState({
         name: '',
         code: '',
-        credits: '',
-        department_id: ''
+        departmentId: 0,
+        totalHours: 0
     });
     const [isSaving, setIsSaving] = useState(false);
 
@@ -46,16 +48,8 @@ export const CoursesPage = () => {
                 departmentsApi.getAll()
             ]);
 
-            setCourses(
-                Array.isArray(coursesRes.data)
-                    ? coursesRes.data
-                    : coursesRes.data?.data || []
-            );
-            setDepartments(
-                Array.isArray(deptRes.data)
-                    ? deptRes.data
-                    : deptRes.data?.data || []
-            );
+            setCourses(unwrapList<Course>(coursesRes));
+            setDepartments(unwrapList<Department>(deptRes));
         } catch (err: any) {
             console.error(err);
             setError('Грешка при зареждане на данните.');
@@ -70,12 +64,12 @@ export const CoursesPage = () => {
             setFormData({
                 name: course.name,
                 code: course.code,
-                credits: course.credits.toString(),
-                department_id: course.department_id.toString()
+                departmentId: course.departmentId,
+                totalHours: course.totalHours ?? 0
             });
         } else {
             setEditId(null);
-            setFormData({name: '', code: '', credits: '', department_id: ''});
+            setFormData({name: '', code: '', departmentId: 0, totalHours: 0});
         }
         setIsFormOpen(true);
     };
@@ -83,30 +77,28 @@ export const CoursesPage = () => {
     const closeForm = () => {
         setIsFormOpen(false);
         setEditId(null);
-        setFormData({name: '', code: '', credits: '', department_id: ''});
+        setFormData({name: '', code: '', departmentId: 0, totalHours: 0});
     };
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (
-            !formData.name ||
-            !formData.code ||
-            !formData.credits ||
-            !formData.department_id
-        ) {
-            alert('Моля, попълнете всички полета!');
+        if (!formData.name || !formData.code || !formData.departmentId) {
+            alert('Моля, попълнете коректно всички полета!');
             return;
         }
 
+        const payload = {
+            name: formData.name,
+            code: formData.code,
+            departmentId: formData.departmentId,
+            ...(formData.totalHours > 0
+                ? {totalHours: formData.totalHours}
+                : {})
+        };
+
         try {
             setIsSaving(true);
-            const payload = {
-                ...formData,
-                credits: Number(formData.credits),
-                department_id: Number(formData.department_id)
-            };
-
             if (editId) {
                 await coursesApi.update(editId, payload);
             } else {
@@ -154,7 +146,6 @@ export const CoursesPage = () => {
                 }}
             >
                 <h2>Списък с Курсове (Учебни дисциплини)</h2>
-
                 {user?.isAdmin && !isFormOpen && (
                     <button
                         onClick={() => openForm()}
@@ -179,16 +170,18 @@ export const CoursesPage = () => {
                             <label>Катедра</label>
                             <select
                                 className="form-control"
-                                value={formData.department_id}
+                                value={formData.departmentId}
                                 onChange={e =>
                                     setFormData({
                                         ...formData,
-                                        department_id: e.target.value
+                                        departmentId: Number(e.target.value)
                                     })
                                 }
                                 disabled={isSaving}
                             >
-                                <option value="">-- Изберете катедра --</option>
+                                <option value={0}>
+                                    -- Изберете катедра --
+                                </option>
                                 {departments.map(d => (
                                     <option key={d.id} value={d.id}>
                                         {d.name}
@@ -232,21 +225,20 @@ export const CoursesPage = () => {
                         </div>
 
                         <div className="form-group">
-                            <label>Кредити (ECTS)</label>
+                            <label>Общо часове (по избор)</label>
                             <input
                                 type="number"
-                                min="1"
-                                max="30"
+                                min="0"
                                 className="form-control"
-                                value={formData.credits}
+                                value={formData.totalHours}
                                 onChange={e =>
                                     setFormData({
                                         ...formData,
-                                        credits: e.target.value
+                                        totalHours: Number(e.target.value)
                                     })
                                 }
                                 disabled={isSaving}
-                                placeholder="Напр. 6"
+                                placeholder="Напр. 60"
                             />
                         </div>
 
@@ -286,7 +278,7 @@ export const CoursesPage = () => {
                         <th>ID</th>
                         <th>Код</th>
                         <th>Име на Курс</th>
-                        <th>Кредити</th>
+                        <th>Часове</th>
                         <th>Към Катедра</th>
                         {user?.isAdmin && <th>Действия</th>}
                     </tr>
@@ -297,9 +289,8 @@ export const CoursesPage = () => {
                             <td>{course.id}</td>
                             <td>{course.code}</td>
                             <td>{course.name}</td>
-                            <td>{course.credits}</td>
-                            <td>{getDepartmentName(course.department_id)}</td>
-
+                            <td>{course.totalHours ?? '—'}</td>
+                            <td>{getDepartmentName(course.departmentId)}</td>
                             {user?.isAdmin && (
                                 <td>
                                     <button

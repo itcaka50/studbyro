@@ -8,10 +8,9 @@ export const createStudent = async (
 ) => {
     try {
         const newStudent = await studentService.createStudent(req.body);
-
         res.status(201).json({
             success: true,
-            message: 'Студентският запис е създаден успешно!',
+            message: 'Студентът е създаден!',
             data: newStudent,
         });
     } catch (error) {
@@ -25,15 +24,11 @@ export const getStudent = async (
     next: NextFunction,
 ) => {
     try {
-        const { facultyNumber } = req.params;
+        const facultyNumber = String(req.params.facultyNumber);
         const student = await studentService.getStudentByFacultyNumber(
-            facultyNumber as string,
+            facultyNumber,
         );
-
-        res.status(200).json({
-            success: true,
-            data: student,
-        });
+        res.status(200).json({ success: true, data: student });
     } catch (error) {
         next(error);
     }
@@ -45,9 +40,7 @@ export const listStudents = async (
     next: NextFunction,
 ) => {
     try {
-        const filters = req.query;
-        const students = await studentService.getAllStudents(filters);
-
+        const students = await studentService.getAllStudents(req.query as any);
         res.status(200).json({
             success: true,
             count: students.length,
@@ -64,15 +57,13 @@ export const updateStudent = async (
     next: NextFunction,
 ) => {
     try {
-        const { facultyNumber } = req.params;
         const updatedStudent = await studentService.updateStudent(
-            facultyNumber as string,
+            String(req.params.facultyNumber),
             req.body,
         );
-
         res.status(200).json({
             success: true,
-            message: 'Данните на студента бяха обновени успешно!',
+            message: 'Данните са обновени!',
             data: updatedStudent,
         });
     } catch (error) {
@@ -86,13 +77,8 @@ export const deleteStudent = async (
     next: NextFunction,
 ) => {
     try {
-        const { facultyNumber } = req.params;
-        await studentService.deleteStudent(facultyNumber as string);
-
-        res.status(200).json({
-            success: true,
-            message: `Студентът с факултетен номер ${facultyNumber} беше изтрит.`,
-        });
+        await studentService.deleteStudent(String(req.params.facultyNumber));
+        res.status(200).json({ success: true, message: 'Студентът е изтрит.' });
     } catch (error) {
         next(error);
     }
@@ -104,17 +90,13 @@ export const enrollInCourse = async (
     next: NextFunction,
 ) => {
     try {
-        const { facultyNumber } = req.params;
-        const { courseId } = req.body;
-
         const enrollment = await studentService.enrollStudentInCourse(
-            facultyNumber as string,
-            Number(courseId),
+            String(req.params.facultyNumber),
+            Number(req.body.courseId),
         );
-
         res.status(201).json({
             success: true,
-            message: 'Студентът беше записан за курса успешно!',
+            message: 'Записан успешно!',
             data: enrollment,
         });
     } catch (error) {
@@ -128,17 +110,14 @@ export const gradeStudent = async (
     next: NextFunction,
 ) => {
     try {
-        const { facultyNumber, courseId } = req.params;
-        const { grade } = req.body;
         const updatedRecord = await studentService.gradeStudent(
-            facultyNumber as string,
-            Number(courseId),
-            Number(grade),
+            String(req.params.facultyNumber),
+            Number(req.params.courseId),
+            Number(req.body.grade),
         );
-
         res.status(200).json({
             success: true,
-            message: 'Оценката е нанесена успешно!',
+            message: 'Оценката е нанесена!',
             data: updatedRecord,
         });
     } catch (error) {
@@ -152,11 +131,9 @@ export const getStudentCourses = async (
     next: NextFunction,
 ) => {
     try {
-        const { facultyNumber } = req.params;
         const courses = await studentService.getStudentCoursesAndGrades(
-            facultyNumber as string,
+            String(req.params.facultyNumber),
         );
-
         res.status(200).json({
             success: true,
             count: courses.length,

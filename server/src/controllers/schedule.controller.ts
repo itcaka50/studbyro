@@ -1,6 +1,24 @@
 import { Request, Response, NextFunction } from 'express';
 import * as scheduleService from '../services/schedule.service';
 
+export const listSchedules = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const schedules = await scheduleService.getAllSchedules();
+
+        res.status(200).json({
+            success: true,
+            count: schedules.length,
+            data: schedules,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const createScheduleRecord = async (
     req: Request,
     res: Response,

@@ -10,18 +10,18 @@ type Payload = z.infer<typeof payloadSchema>;
 
 export class JwtUtil {
     sign(payload: Payload) {
-        const token = jwt.sign(payload, config.jwt.secret, {
+        return jwt.sign(payload, config.jwt.secret, {
             expiresIn: config.jwt.expirySeconds,
         });
-        return token;
     }
 
-    verify(token: string) {
-        const payload = jwt.verify(token, config.jwt.secret);
-        const cleanPayload = payloadSchema.safeParse(payload);
-        if (cleanPayload.error) {
+    verify(token: string): Payload | undefined {
+        try {
+            const decoded = jwt.verify(token, config.jwt.secret);
+            const result = payloadSchema.safeParse(decoded);
+            return result.success ? result.data : undefined;
+        } catch {
             return undefined;
         }
-        return cleanPayload.data;
     }
 }

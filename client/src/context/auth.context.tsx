@@ -70,11 +70,23 @@ export const AuthProvider = ({children}: {children: ReactNode}) => {
 
         localStorage.setItem('token', token);
 
-        setUser(userData);
+        try {
+            const profileResponse = await authApi.getProfile();
+            const fullUser =
+                profileResponse.data.data || profileResponse.data.user;
+            setUser(fullUser ?? userData);
+        } catch {
+            setUser(userData);
+        }
     };
 
     const logout = () => {
-        authApi.logout();
+        if (typeof authApi.logout === 'function') {
+            authApi.logout();
+        }
+
+        localStorage.removeItem('token');
+
         setUser(null);
     };
 

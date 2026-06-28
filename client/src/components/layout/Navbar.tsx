@@ -24,31 +24,46 @@ export const Navbar = () => {
                             Начало
                         </Link>
                     </li>
-                    <li className="nav-item">
-                        <Link to="/faculties" className="nav-link">
-                            Факултети
-                        </Link>
-                    </li>
-                    <li className="nav-item">
-                        <Link to="/departments" className="nav-link">
-                            Катедри
-                        </Link>
-                    </li>
-                    <li className="nav-item">
-                        <Link to="/courses" className="nav-link">
-                            Курсове
-                        </Link>
-                    </li>
-                    <li className="nav-item">
-                        <Link to="/teachers" className="nav-link">
-                            Преподаватели
-                        </Link>
-                    </li>
-                    <li className="nav-item">
-                        <Link to="/students" className="nav-link">
-                            Студенти
-                        </Link>
-                    </li>
+
+                    {user?.isAdmin && (
+                        <>
+                            <li className="nav-item">
+                                <Link to="/faculties" className="nav-link">
+                                    Факултети
+                                </Link>
+                            </li>
+                            <li className="nav-item">
+                                <Link to="/departments" className="nav-link">
+                                    Катедри
+                                </Link>
+                            </li>
+                            <li className="nav-item">
+                                <Link to="/courses" className="nav-link">
+                                    Курсове
+                                </Link>
+                            </li>
+                            <li className="nav-item">
+                                <Link to="/curriculums" className="nav-link">
+                                    Учебни планове
+                                </Link>
+                            </li>
+                            <li className="nav-item">
+                                <Link to="/teachers" className="nav-link">
+                                    Преподаватели
+                                </Link>
+                            </li>
+                            <li className="nav-item">
+                                <Link to="/students" className="nav-link">
+                                    Студенти
+                                </Link>
+                            </li>
+                            <li className="nav-item">
+                                <Link to="/users" className="nav-link">
+                                    Потребители
+                                </Link>
+                            </li>
+                        </>
+                    )}
                 </ul>
 
                 <div className="nav-auth">
@@ -60,20 +75,12 @@ export const Navbar = () => {
                             <button
                                 onClick={handleLogout}
                                 className="btn btn-danger"
-                                style={{padding: '5px 10px'}}
                             >
                                 Изход
                             </button>
                         </>
                     ) : (
-                        <Link
-                            to="/login"
-                            className="btn btn-primary"
-                            style={{
-                                padding: '5px 15px',
-                                textDecoration: 'none'
-                            }}
-                        >
+                        <Link to="/login" className="btn btn-primary">
                             Вход
                         </Link>
                     )}

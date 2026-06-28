@@ -6,6 +6,14 @@ export const AdminDashboard = () => {
     const {user} = useAuth();
     const navigate = useNavigate();
 
+    const menuButtonStyle = {
+        width: 'auto',
+        minWidth: '240px',
+        padding: '15px',
+        textAlign: 'left' as const,
+        marginBottom: '10px'
+    };
+
     return (
         <div style={{padding: '20px'}}>
             <h1>Административен Панел</h1>
@@ -17,75 +25,82 @@ export const AdminDashboard = () => {
             <div
                 style={{
                     display: 'flex',
-                    flexWrap: 'wrap',
+                    flexDirection: 'column',
                     gap: '15px',
                     marginTop: '20px'
                 }}
             >
-                <button
-                    className="btn btn-primary"
-                    style={{
-                        width: 'auto',
-                        minWidth: '220px',
-                        padding: '15px',
-                        textAlign: 'left'
-                    }}
-                    onClick={() => navigate('/users')}
-                >
-                    👥 Управление на Потребители
-                </button>
+                <section>
+                    <h3>Потребители</h3>
+                    <div
+                        style={{display: 'flex', flexWrap: 'wrap', gap: '10px'}}
+                    >
+                        <button
+                            className="btn btn-primary"
+                            style={menuButtonStyle}
+                            onClick={() => navigate('/users')}
+                        >
+                            👥 Управление на Потребители
+                        </button>
+                        <button
+                            className="btn btn-primary"
+                            style={menuButtonStyle}
+                            onClick={() => navigate('/students')}
+                        >
+                            👨‍🎓 Студенти (Справки)
+                        </button>
+                        <button
+                            className="btn btn-primary"
+                            style={menuButtonStyle}
+                            onClick={() => navigate('/teachers')}
+                        >
+                            👨‍🏫 Преподаватели (Справки)
+                        </button>
+                    </div>
+                </section>
 
-                <button
-                    className="btn btn-primary"
-                    style={{
-                        width: 'auto',
-                        minWidth: '220px',
-                        padding: '15px',
-                        textAlign: 'left'
-                    }}
-                    onClick={() => navigate('/faculties')}
-                >
-                    🏢 Управление на Факултети
-                </button>
-
-                <button
-                    className="btn btn-primary"
-                    style={{
-                        width: 'auto',
-                        minWidth: '220px',
-                        padding: '15px',
-                        textAlign: 'left'
-                    }}
-                    onClick={() => navigate('/departments')}
-                >
-                    📂 Управление на Катедри
-                </button>
-
-                <button
-                    className="btn btn-primary"
-                    style={{
-                        width: 'auto',
-                        minWidth: '220px',
-                        padding: '15px',
-                        textAlign: 'left'
-                    }}
-                    onClick={() => navigate('/courses')}
-                >
-                    📚 Управление на Курсове
-                </button>
-
-                <button
-                    className="btn btn-primary"
-                    style={{
-                        width: 'auto',
-                        minWidth: '220px',
-                        padding: '15px',
-                        textAlign: 'left'
-                    }}
-                    onClick={() => navigate('/dormitories')}
-                >
-                    🏠 Одобряване на Общежития
-                </button>
+                <section>
+                    <h3>Университетска структура</h3>
+                    <div
+                        style={{display: 'flex', flexWrap: 'wrap', gap: '10px'}}
+                    >
+                        <button
+                            className="btn btn-primary"
+                            style={menuButtonStyle}
+                            onClick={() => navigate('/faculties')}
+                        >
+                            🏢 Факултети
+                        </button>
+                        <button
+                            className="btn btn-primary"
+                            style={menuButtonStyle}
+                            onClick={() => navigate('/departments')}
+                        >
+                            📂 Катедри
+                        </button>
+                        <button
+                            className="btn btn-primary"
+                            style={menuButtonStyle}
+                            onClick={() => navigate('/curriculums')}
+                        >
+                            📋 Учебни планове
+                        </button>
+                        <button
+                            className="btn btn-primary"
+                            style={menuButtonStyle}
+                            onClick={() => navigate('/courses')}
+                        >
+                            📚 Курсове
+                        </button>
+                        <button
+                            className="btn btn-primary"
+                            style={menuButtonStyle}
+                            onClick={() => navigate('/schedules')}
+                        >
+                            📅 Графици
+                        </button>
+                    </div>
+                </section>
             </div>
 
             <div style={{marginTop: '40px'}}>
@@ -98,71 +113,44 @@ export const AdminDashboard = () => {
                         flexWrap: 'wrap'
                     }}
                 >
-                    <div
-                        className="card"
-                        style={{
-                            flex: 1,
-                            minWidth: '200px',
-                            textAlign: 'center',
-                            padding: '20px'
-                        }}
-                    >
-                        <h4 style={{margin: 0, color: '#666'}}>Сървър</h4>
-                        <p
+                    {[
+                        {
+                            label: 'Сървър',
+                            value: 'На линия (3000)',
+                            color: '#28a745'
+                        },
+                        {label: 'Клиент', value: 'Порт 3001', color: '#007bff'},
+                        {
+                            label: 'Ниво достъп',
+                            value: 'Administrator',
+                            color: '#dc3545'
+                        }
+                    ].map(stat => (
+                        <div
+                            key={stat.label}
+                            className="card"
                             style={{
-                                fontSize: '24px',
-                                fontWeight: 'bold',
-                                color: '#28a745',
-                                margin: '10px 0 0 0'
+                                flex: 1,
+                                minWidth: '200px',
+                                textAlign: 'center',
+                                padding: '20px'
                             }}
                         >
-                            На линия (3000)
-                        </p>
-                    </div>
-                    <div
-                        className="card"
-                        style={{
-                            flex: 1,
-                            minWidth: '200px',
-                            textAlign: 'center',
-                            padding: '20px'
-                        }}
-                    >
-                        <h4 style={{margin: 0, color: '#666'}}>Клиент</h4>
-                        <p
-                            style={{
-                                fontSize: '24px',
-                                fontWeight: 'bold',
-                                color: '#007bff',
-                                margin: '10px 0 0 0'
-                            }}
-                        >
-                            Порт 3001
-                        </p>
-                    </div>
-                    <div
-                        className="card"
-                        style={{
-                            flex: 1,
-                            minWidth: '200px',
-                            textAlign: 'center',
-                            padding: '20px'
-                        }}
-                    >
-                        <h4 style={{margin: 0, color: '#666'}}>
-                            Ниво на достъп
-                        </h4>
-                        <p
-                            style={{
-                                fontSize: '24px',
-                                fontWeight: 'bold',
-                                color: '#dc3545',
-                                margin: '10px 0 0 0'
-                            }}
-                        >
-                            Administrator
-                        </p>
-                    </div>
+                            <h4 style={{margin: 0, color: '#666'}}>
+                                {stat.label}
+                            </h4>
+                            <p
+                                style={{
+                                    fontSize: '24px',
+                                    fontWeight: 'bold',
+                                    color: stat.color,
+                                    margin: '10px 0 0 0'
+                                }}
+                            >
+                                {stat.value}
+                            </p>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>

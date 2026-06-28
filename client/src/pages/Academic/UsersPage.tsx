@@ -3,247 +3,166 @@ import {usersApi} from '../../api/users.api';
 import {departmentsApi} from '../../api/departments.api';
 import {curriculumsApi} from '../../api/curriculums.api';
 import {useAuth} from '../../context/auth.context';
+import {unwrapList} from '../../api/utils';
 
 interface User {
     id: number;
     username: string;
+    name: string;
     email: string;
-    is_admin: boolean | number;
+    isAdmin: boolean;
+    student?: {facultyNumber: string};
+    teacher?: {userId: number};
 }
 
 export const UsersPage = () => {
     const {user: currentUser} = useAuth();
-
     const [users, setUsers] = useState<User[]>([]);
     const [departments, setDepartments] = useState<any[]>([]);
     const [curriculums, setCurriculums] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
-
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editId, setEditId] = useState<number | null>(null);
 
     const [formData, setFormData] = useState({
         username: '',
+        name: '',
         email: '',
         password: '',
         role: 'user',
-
-        first_name: '',
-        last_name: '',
-        faculty_number: '',
-        curriculum_id: '',
-        academic_title: '',
-        department_id: ''
+        facultyNumber: '',
+        ucn: '',
+        financing: 'държавна поръчка' as
+            | 'държавна поръчка'
+            | 'платено обучение',
+        address: '',
+        curriculumId: 0,
+        departmentId: 0
     });
 
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        loadInitialData();
+        loadData();
     }, []);
 
-    const loadInitialData = async () => {
+    const loadData = async () => {
+        setIsLoading(true);
         try {
-            setIsLoading(true);
             const [usersRes, deptRes, currRes] = await Promise.all([
                 usersApi.getAll(),
-                departmentsApi.getAll().catch(() => ({data: []})),
-                curriculumsApi.getAll().catch(() => ({data: []}))
+                departmentsApi.getAll().catch(() => null),
+                curriculumsApi.getAll().catch(() => null)
             ]);
-
-            setUsers(
-                Array.isArray(usersRes.data)
-                    ? usersRes.data
-                    : usersRes.data?.data || []
-            );
-            setDepartments(
-                Array.isArray(deptRes.data)
-                    ? deptRes.data
-                    : deptRes.data?.data || []
-            );
-            setCurriculums(
-                Array.isArray(currRes.data)
-                    ? currRes.data
-                    : currRes.data?.data || []
-            );
-        } catch (err: any) {
+            setUsers(unwrapList<User>(usersRes));
+            setDepartments(deptRes ? unwrapList(deptRes) : []);
+            setCurriculums(currRes ? unwrapList(currRes) : []);
+        } catch (err) {
             console.error(err);
-            setError('Грешка при зареждане на данните.');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const loadUsersOnly = async () => {
-        const res = await usersApi.getAll();
-        setUsers(Array.isArray(res.data) ? res.data : res.data?.data || []);
-    };
-
-    const openForm = (u?: User) => {
-        if (u) {
-            setEditId(u.id);
-            setFormData({
-                ...formData,
-                username: u.username,
-                email: u.email,
-                password: '',
-                role: u.is_admin ? 'admin' : 'user'
-            });
-        } else {
-            setEditId(null);
-            setFormData({
-                username: '',
-                email: '',
-                password: '',
-                role: 'user',
-                first_name: '',
-                last_name: '',
-                faculty_number: '',
-                curriculum_id:
-                    curriculums.length > 0 ? String(curriculums[0].id) : '',
-                academic_title: '',
-                department_id:
-                    departments.length > 0 ? String(departments[0].id) : ''
-            });
-        }
-        setIsFormOpen(true);
-    };
-
-    const closeForm = () => {
-        setIsFormOpen(false);
-        setEditId(null);
+    const getRoleLabel = (u: User) => {
+        if (u.isAdmin) return 'Администратор';
+        if (u.student) return 'Студент';
+        if (u.teacher) return 'Преподавател';
+        return 'Потребител';
     };
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!formData.username || !formData.email) {
-            alert('Потребителското име и имейлът са задължителни!');
-            return;
-        }
-
-        if (!editId && !formData.password) {
-            alert('Моля, въведете парола за новия потребител!');
-            return;
-        }
-
+        setIsSaving(true);
         try {
-            setIsSaving(true);
+            const roleType =
+                formData.role === 'admin'
+                    ? 'user'
+                    : (formData.role as 'user' | 'student' | 'teacher');
 
-            const payload: any = {
-                username: formData.username,
-                email: formData.email,
-                is_admin: formData.role === 'admin' ? 1 : 0,
-                role_type: formData.role
-            };
-
-            if (formData.password) {
-                payload.password = formData.password;
-            }
+            let profileData: Record<string, unknown> | undefined;
 
             if (formData.role === 'student') {
-                payload.profile_data = {
-                    first_name: formData.first_name,
-                    last_name: formData.last_name,
-                    faculty_number: formData.faculty_number,
-                    curriculum_id: formData.curriculum_id
+                profileData = {
+                    facultyNumber: formData.facultyNumber,
+                    ucn: formData.ucn,
+                    financing: formData.financing,
+                    address: formData.address,
+                    curriculumId: formData.curriculumId
                 };
             } else if (formData.role === 'teacher') {
-                payload.profile_data = {
-                    first_name: formData.first_name,
-                    last_name: formData.last_name,
-                    academic_title: formData.academic_title,
-                    department_id: formData.department_id
+                profileData = {
+                    departmentId: formData.departmentId
                 };
             }
 
-            if (editId) {
-                await usersApi.update(editId, payload);
-            } else {
-                await usersApi.create(payload);
-            }
+            const payload = {
+                username: formData.username,
+                name: formData.name,
+                email: formData.email,
+                password: formData.password,
+                is_admin: formData.role === 'admin',
+                role_type: roleType,
+                profile_data: profileData
+            };
 
-            await loadUsersOnly();
-            closeForm();
+            await usersApi.create(payload);
+            await loadData();
+            setIsFormOpen(false);
+            setFormData({
+                username: '',
+                name: '',
+                email: '',
+                password: '',
+                role: 'user',
+                facultyNumber: '',
+                ucn: '',
+                financing: 'държавна поръчка',
+                address: '',
+                curriculumId: 0,
+                departmentId: 0
+            });
         } catch (err: any) {
-            console.error(err);
-            alert(err.response?.data?.message || 'Грешка при запазване!');
+            alert(err.response?.data?.message || 'Грешка при запис!');
         } finally {
             setIsSaving(false);
         }
     };
 
-    const handleDelete = async (id: number) => {
-        if (id === currentUser?.id) {
-            alert('Не можеш да изтриеш собствения си профил, докато си вътре!');
-            return;
-        }
-
-        if (
-            !window.confirm(
-                'Сигурен ли си, че искаш да изтриеш този потребител?'
-            )
-        )
-            return;
-
-        try {
-            await usersApi.remove(id);
-            loadUsersOnly();
-        } catch (err) {
-            alert('Грешка при изтриване!');
-        }
-    };
-
-    if (isLoading) return <div>Зареждане на данни...</div>;
-    if (error) return <div className="alert-error">{error}</div>;
-
-    if (!currentUser?.isAdmin) {
-        return (
-            <div className="alert-error">
-                Нямате достъп до тази административна страница!
-            </div>
-        );
-    }
+    if (isLoading) return <div>Зареждане на потребители...</div>;
 
     return (
         <div>
-            <div
-                style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '20px'
-                }}
-            >
-                <h2>Управление на Потребители</h2>
-                {!isFormOpen && (
-                    <button
-                        onClick={() => openForm()}
-                        className="btn btn-primary"
-                        style={{width: 'auto'}}
-                    >
-                        + Нов Потребител
-                    </button>
-                )}
-            </div>
+            <h2>Управление на Потребители</h2>
+            {currentUser?.isAdmin && (
+                <button
+                    onClick={() => setIsFormOpen(!isFormOpen)}
+                    className="btn btn-primary"
+                >
+                    {isFormOpen ? 'Затвори формата' : '+ Нов Потребител'}
+                </button>
+            )}
 
             {isFormOpen && (
-                <div className="card" style={{marginBottom: '20px'}}>
-                    <h3>
-                        {editId
-                            ? 'Редактиране на Потребител'
-                            : 'Създаване на Потребител'}
-                    </h3>
-                    <form
-                        onSubmit={handleFormSubmit}
-                        style={{marginTop: '15px'}}
-                    >
-                        <div style={{display: 'flex', gap: '15px'}}>
-                            <div className="form-group" style={{flex: 1}}>
+                <div
+                    className="card"
+                    style={{
+                        marginTop: '20px',
+                        padding: '20px',
+                        backgroundColor: '#f9f9f9'
+                    }}
+                >
+                    <h3>Създаване на потребител</h3>
+                    <form onSubmit={handleFormSubmit}>
+                        <div
+                            style={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                gap: '15px'
+                            }}
+                        >
+                            <div className="form-group">
                                 <label>Потребителско име</label>
                                 <input
-                                    type="text"
                                     className="form-control"
                                     value={formData.username}
                                     onChange={e =>
@@ -252,10 +171,24 @@ export const UsersPage = () => {
                                             username: e.target.value
                                         })
                                     }
-                                    disabled={isSaving}
+                                    required
                                 />
                             </div>
-                            <div className="form-group" style={{flex: 1}}>
+                            <div className="form-group">
+                                <label>Пълно име</label>
+                                <input
+                                    className="form-control"
+                                    value={formData.name}
+                                    onChange={e =>
+                                        setFormData({
+                                            ...formData,
+                                            name: e.target.value
+                                        })
+                                    }
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
                                 <label>Имейл</label>
                                 <input
                                     type="email"
@@ -267,270 +200,169 @@ export const UsersPage = () => {
                                             email: e.target.value
                                         })
                                     }
-                                    disabled={isSaving}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Парола</label>
+                                <input
+                                    type="password"
+                                    className="form-control"
+                                    value={formData.password}
+                                    onChange={e =>
+                                        setFormData({
+                                            ...formData,
+                                            password: e.target.value
+                                        })
+                                    }
+                                    required
                                 />
                             </div>
                         </div>
 
                         <div className="form-group">
-                            <label>
-                                Парола{' '}
-                                {editId &&
-                                    '(Остави празно, ако няма да я сменяш)'}
-                            </label>
-                            <input
-                                type="password"
+                            <label>Тип Акаунт</label>
+                            <select
                                 className="form-control"
-                                value={formData.password}
+                                value={formData.role}
                                 onChange={e =>
                                     setFormData({
                                         ...formData,
-                                        password: e.target.value
+                                        role: e.target.value
                                     })
                                 }
-                                disabled={isSaving}
-                            />
+                            >
+                                <option value="user">
+                                    Обикновен потребител
+                                </option>
+                                <option value="student">Студент</option>
+                                <option value="teacher">Преподавател</option>
+                                <option value="admin">Администратор</option>
+                            </select>
                         </div>
 
-                        <hr
-                            style={{margin: '20px 0', border: '1px solid #eee'}}
-                        />
-
-                        {!editId && (
-                            <div className="form-group">
-                                <label>Тип Акаунт (Роля)</label>
-                                <select
+                        {formData.role === 'student' && (
+                            <div
+                                style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 1fr',
+                                    gap: '15px',
+                                    marginTop: '10px'
+                                }}
+                            >
+                                <input
                                     className="form-control"
-                                    value={formData.role}
+                                    placeholder="Факултетен №"
+                                    value={formData.facultyNumber}
                                     onChange={e =>
                                         setFormData({
                                             ...formData,
-                                            role: e.target.value
+                                            facultyNumber: e.target.value
                                         })
                                     }
-                                    disabled={isSaving}
+                                    required
+                                />
+                                <input
+                                    className="form-control"
+                                    placeholder="ЕГН"
+                                    value={formData.ucn}
+                                    onChange={e =>
+                                        setFormData({
+                                            ...formData,
+                                            ucn: e.target.value
+                                        })
+                                    }
+                                    required
+                                />
+                                <select
+                                    className="form-control"
+                                    value={formData.financing}
+                                    onChange={e =>
+                                        setFormData({
+                                            ...formData,
+                                            financing: e.target
+                                                .value as typeof formData.financing
+                                        })
+                                    }
                                 >
-                                    <option value="user">
-                                        Обикновен потребител
+                                    <option value="държавна поръчка">
+                                        Държавна поръчка
                                     </option>
-                                    <option value="student">👨‍🎓 Студент</option>
-                                    <option value="teacher">
-                                        👨‍🏫 Преподавател
+                                    <option value="платено обучение">
+                                        Платено обучение
                                     </option>
-                                    <option value="admin">
-                                        🛡️ Администратор
+                                </select>
+                                <input
+                                    className="form-control"
+                                    placeholder="Адрес"
+                                    value={formData.address}
+                                    onChange={e =>
+                                        setFormData({
+                                            ...formData,
+                                            address: e.target.value
+                                        })
+                                    }
+                                    required
+                                />
+                                <select
+                                    className="form-control"
+                                    value={formData.curriculumId}
+                                    onChange={e =>
+                                        setFormData({
+                                            ...formData,
+                                            curriculumId: Number(e.target.value)
+                                        })
+                                    }
+                                    required
+                                >
+                                    <option value={0}>
+                                        Изберете учебен план
                                     </option>
+                                    {curriculums.map(c => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                         )}
 
-                        {formData.role === 'student' && !editId && (
-                            <div
-                                style={{
-                                    backgroundColor: '#f8f9fa',
-                                    padding: '15px',
-                                    borderRadius: '5px',
-                                    marginTop: '10px'
-                                }}
-                            >
-                                <h4 style={{marginTop: 0}}>Данни за Студент</h4>
-                                <div style={{display: 'flex', gap: '15px'}}>
-                                    <div
-                                        className="form-group"
-                                        style={{flex: 1}}
-                                    >
-                                        <label>Име</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            value={formData.first_name}
-                                            onChange={e =>
-                                                setFormData({
-                                                    ...formData,
-                                                    first_name: e.target.value
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                    <div
-                                        className="form-group"
-                                        style={{flex: 1}}
-                                    >
-                                        <label>Фамилия</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            value={formData.last_name}
-                                            onChange={e =>
-                                                setFormData({
-                                                    ...formData,
-                                                    last_name: e.target.value
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                </div>
-                                <div style={{display: 'flex', gap: '15px'}}>
-                                    <div
-                                        className="form-group"
-                                        style={{flex: 1}}
-                                    >
-                                        <label>Факултетен №</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            value={formData.faculty_number}
-                                            onChange={e =>
-                                                setFormData({
-                                                    ...formData,
-                                                    faculty_number:
-                                                        e.target.value
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                    <div
-                                        className="form-group"
-                                        style={{flex: 1}}
-                                    >
-                                        <label>Учебен План</label>
-                                        <select
-                                            className="form-control"
-                                            value={formData.curriculum_id}
-                                            onChange={e =>
-                                                setFormData({
-                                                    ...formData,
-                                                    curriculum_id:
-                                                        e.target.value
-                                                })
-                                            }
-                                        >
-                                            {curriculums.map(c => (
-                                                <option key={c.id} value={c.id}>
-                                                    {c.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
+                        {formData.role === 'teacher' && (
+                            <div style={{marginTop: '10px'}}>
+                                <select
+                                    className="form-control"
+                                    value={formData.departmentId}
+                                    onChange={e =>
+                                        setFormData({
+                                            ...formData,
+                                            departmentId: Number(e.target.value)
+                                        })
+                                    }
+                                    required
+                                >
+                                    <option value={0}>Изберете катедра</option>
+                                    {departments.map(d => (
+                                        <option key={d.id} value={d.id}>
+                                            {d.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         )}
 
-                        {formData.role === 'teacher' && !editId && (
-                            <div
-                                style={{
-                                    backgroundColor: '#f8f9fa',
-                                    padding: '15px',
-                                    borderRadius: '5px',
-                                    marginTop: '10px'
-                                }}
-                            >
-                                <h4 style={{marginTop: 0}}>
-                                    Данни за Преподавател
-                                </h4>
-                                <div style={{display: 'flex', gap: '15px'}}>
-                                    <div
-                                        className="form-group"
-                                        style={{flex: 1}}
-                                    >
-                                        <label>Име</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            value={formData.first_name}
-                                            onChange={e =>
-                                                setFormData({
-                                                    ...formData,
-                                                    first_name: e.target.value
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                    <div
-                                        className="form-group"
-                                        style={{flex: 1}}
-                                    >
-                                        <label>Фамилия</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            value={formData.last_name}
-                                            onChange={e =>
-                                                setFormData({
-                                                    ...formData,
-                                                    last_name: e.target.value
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                </div>
-                                <div style={{display: 'flex', gap: '15px'}}>
-                                    <div
-                                        className="form-group"
-                                        style={{flex: 1}}
-                                    >
-                                        <label>Титла</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            placeholder="Напр. Проф. д-р"
-                                            value={formData.academic_title}
-                                            onChange={e =>
-                                                setFormData({
-                                                    ...formData,
-                                                    academic_title:
-                                                        e.target.value
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                    <div
-                                        className="form-group"
-                                        style={{flex: 1}}
-                                    >
-                                        <label>Катедра</label>
-                                        <select
-                                            className="form-control"
-                                            value={formData.department_id}
-                                            onChange={e =>
-                                                setFormData({
-                                                    ...formData,
-                                                    department_id:
-                                                        e.target.value
-                                                })
-                                            }
-                                        >
-                                            {departments.map(d => (
-                                                <option key={d.id} value={d.id}>
-                                                    {d.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div
-                            style={{
-                                display: 'flex',
-                                gap: '10px',
-                                marginTop: '20px'
-                            }}
-                        >
+                        <div style={{marginTop: '20px'}}>
                             <button
                                 type="submit"
                                 className="btn btn-primary"
                                 disabled={isSaving}
-                                style={{width: 'auto'}}
                             >
-                                {isSaving ? 'Запазване...' : 'Запази'}
+                                Запази
                             </button>
                             <button
                                 type="button"
-                                onClick={closeForm}
                                 className="btn"
-                                disabled={isSaving}
+                                onClick={() => setIsFormOpen(false)}
+                                style={{marginLeft: '10px'}}
                             >
                                 Отказ
                             </button>
@@ -541,88 +373,38 @@ export const UsersPage = () => {
 
             <table
                 border={1}
-                cellPadding={10}
                 style={{
-                    borderCollapse: 'collapse',
                     width: '100%',
-                    backgroundColor: 'white'
+                    marginTop: '20px',
+                    borderCollapse: 'collapse'
                 }}
             >
                 <thead>
                     <tr style={{backgroundColor: '#f4f4f9'}}>
                         <th>ID</th>
-                        <th>Username</th>
+                        <th>Потребителско име</th>
+                        <th>Име</th>
                         <th>Имейл</th>
-                        <th>Права</th>
-                        <th>Действия</th>
+                        <th>Роля</th>
                     </tr>
                 </thead>
                 <tbody>
                     {users.map(u => (
-                        <tr
-                            key={u.id}
-                            style={
-                                u.id === currentUser?.id
-                                    ? {backgroundColor: '#e8f5e9'}
-                                    : {}
-                            }
-                        >
+                        <tr key={u.id}>
                             <td>{u.id}</td>
-                            <td>
-                                <strong>{u.username}</strong>{' '}
-                                {u.id === currentUser?.id && (
-                                    <span style={{color: 'green'}}>(Ти)</span>
-                                )}
-                            </td>
+                            <td>{u.username}</td>
+                            <td>{u.name}</td>
                             <td>{u.email}</td>
-                            <td>
-                                {u.is_admin ? (
-                                    <span
-                                        style={{
-                                            backgroundColor: '#ffebee',
-                                            color: '#c62828',
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            fontWeight: 'bold'
-                                        }}
-                                    >
-                                        Admin
-                                    </span>
-                                ) : (
-                                    <span
-                                        style={{
-                                            backgroundColor: '#e3f2fd',
-                                            color: '#1565c0',
-                                            padding: '4px 8px',
-                                            borderRadius: '4px'
-                                        }}
-                                    >
-                                        User
-                                    </span>
-                                )}
-                            </td>
-                            <td>
-                                <button
-                                    onClick={() => openForm(u)}
-                                    className="btn"
-                                    style={{
-                                        marginRight: '10px',
-                                        backgroundColor: '#ffc107',
-                                        color: '#000'
-                                    }}
-                                >
-                                    Редакция
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(u.id)}
-                                    className="btn btn-danger"
-                                    disabled={u.id === currentUser?.id}
-                                >
-                                    Изтрий
-                                </button>
-                            </td>
+                            <td>{getRoleLabel(u)}</td>
                         </tr>
                     ))}
+                    {users.length === 0 && (
+                        <tr>
+                            <td colSpan={5} style={{textAlign: 'center'}}>
+                                Няма намерени потребители.
+                            </td>
+                        </tr>
+                    )}
                 </tbody>
             </table>
         </div>

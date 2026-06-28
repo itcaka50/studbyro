@@ -38,7 +38,7 @@ export const getCourseById = async (courseId: number) => {
 };
 
 export const getAllCourses = async (filters: CourseFilters = {}) => {
-    let query = Course.query().withGraphFetched('department');
+    let query = Course.query().withGraphFetched('[department, teachers]');
 
     if (filters.departmentId) {
         query = query.where('departmentId', filters.departmentId);

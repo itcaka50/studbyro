@@ -11,6 +11,8 @@ router.get('/profile', userController.getProfile);
 router.put('/profile', userController.updateProfile);
 
 router.get('/', requireAdmin, userController.listUsers);
+router.post('/', requireAdmin, userController.createUser);
+router.put('/:id', requireAdmin, userController.updateUser);
 router.delete('/:id', requireAdmin, userController.deleteUser);
 
 export default router;

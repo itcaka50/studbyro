@@ -9,6 +9,13 @@ export interface ScheduleCreateData {
     type: ScheduleType;
 }
 
+export const getAllSchedules = async () => {
+    return await Schedule.query()
+        .withGraphFetched('course')
+        .orderBy('dayOfWeek')
+        .orderBy('startTime');
+};
+
 export const createScheduleRecord = async (data: ScheduleCreateData) => {
     return await Schedule.query().insert(data);
 };

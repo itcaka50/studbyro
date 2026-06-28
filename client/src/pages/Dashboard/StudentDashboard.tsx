@@ -11,8 +11,6 @@ export const StudentDashboard = () => {
             <div style={{display: 'flex', gap: '20px', marginTop: '20px'}}>
                 <div className="card">Моята специалност</div>
                 <div className="card">Записване на курсове</div>
-                <div className="card">Кандидатстване за общежитие</div>
-                <div className="card">Стипендии</div>
             </div>
         </div>
     );
