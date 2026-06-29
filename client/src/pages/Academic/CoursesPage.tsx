@@ -356,7 +356,9 @@ export const CoursesPage = () => {
                             {user?.isAdmin && (
                                 <td>
                                     <button
-                                        onClick={() => openTeacherManager(course)}
+                                        onClick={() =>
+                                            openTeacherManager(course)
+                                        }
                                         className="btn btn-primary"
                                         style={{
                                             marginRight: '10px',
@@ -444,8 +446,7 @@ export const CoursesPage = () => {
                                     .filter(
                                         t =>
                                             !courseTeachers.some(
-                                                ct =>
-                                                    ct.userId === t.userId
+                                                ct => ct.userId === t.userId
                                             )
                                     )
                                     .map(t => (
@@ -499,7 +500,10 @@ export const CoursesPage = () => {
                             ))}
                             {courseTeachers.length === 0 && (
                                 <tr>
-                                    <td colSpan={3} style={{textAlign: 'center'}}>
+                                    <td
+                                        colSpan={3}
+                                        style={{textAlign: 'center'}}
+                                    >
                                         Няма назначени преподаватели.
                                     </td>
                                 </tr>
