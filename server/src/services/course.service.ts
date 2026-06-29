@@ -28,7 +28,7 @@ export const createCourse = async (courseData: CourseCreateData) => {
 export const getCourseById = async (courseId: number) => {
     const course = await Course.query()
         .findById(courseId)
-        .withGraphFetched('department');
+        .withGraphFetched('[department, teachers.user]');
 
     if (!course) {
         throw new Error('Курсът не е намерен!');
@@ -38,7 +38,7 @@ export const getCourseById = async (courseId: number) => {
 };
 
 export const getAllCourses = async (filters: CourseFilters = {}) => {
-    let query = Course.query().withGraphFetched('department');
+    let query = Course.query().withGraphFetched('[department, teachers]');
 
     if (filters.departmentId) {
         query = query.where('departmentId', filters.departmentId);

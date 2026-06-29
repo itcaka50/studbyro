@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as courseService from '../services/course.service';
+import * as teacherService from '../services/teacher.service';
 
 export const createCourse = async (
     req: Request,
@@ -94,6 +95,50 @@ export const deleteCourse = async (
         res.status(200).json({
             success: true,
             message: `Курсът с ID ${id} беше изтрит успешно.`,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const assignTeacher = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const courseId = Number(req.params.id);
+        const userId = Number(req.body.userId);
+
+        const assignment = await teacherService.assignTeacherToCourse(
+            userId,
+            courseId,
+        );
+
+        res.status(201).json({
+            success: true,
+            message: 'Преподавателят е назначен към курса!',
+            data: assignment,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const removeTeacher = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        await teacherService.removeTeacherFromCourse(
+            Number(req.params.userId),
+            Number(req.params.id),
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Преподавателят е премахнат от курса.',
         });
     } catch (error) {
         next(error);

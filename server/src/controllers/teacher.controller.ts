@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as teacherService from '../services/teacher.service';
+import * as studentService from '../services/student.service';
 
 export const createTeacher = async (
     req: Request,
@@ -159,6 +160,111 @@ export const getTeacherCourses = async (
             success: true,
             count: courses.length,
             data: courses,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getMyProfile = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const teacher = await teacherService.getTeacherById(res.locals.user.id);
+        res.status(200).json({ success: true, data: teacher });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getMyCourses = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const courses = await teacherService.getTeacherCourses(
+            res.locals.user.id,
+        );
+        res.status(200).json({
+            success: true,
+            count: courses.length,
+            data: courses,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getMyCourseStudents = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const students = await teacherService.getStudentsInTeacherCourse(
+            res.locals.user.id,
+            Number(req.params.courseId),
+        );
+        res.status(200).json({
+            success: true,
+            count: students.length,
+            data: students,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const gradeMyCourseStudent = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const courseId = Number(req.params.courseId);
+        const teaches = await teacherService.teacherTeachesCourse(
+            res.locals.user.id,
+            courseId,
+        );
+        if (!teaches) {
+            return res.status(403).json({
+                success: false,
+                message: 'Не водите този курс!',
+            });
+        }
+
+        const updatedRecord = await studentService.gradeStudent(
+            String(req.params.facultyNumber),
+            courseId,
+            Number(req.body.grade),
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Оценката е нанесена!',
+            data: updatedRecord,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getMySchedule = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const schedule = await teacherService.getTeacherSchedule(
+            res.locals.user.id,
+        );
+        res.status(200).json({
+            success: true,
+            count: schedule.length,
+            data: schedule,
         });
     } catch (error) {
         next(error);

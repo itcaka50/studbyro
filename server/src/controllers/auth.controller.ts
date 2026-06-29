@@ -28,9 +28,21 @@ export const login = async (
     next: NextFunction,
 ) => {
     try {
-        const { email, password } = req.body;
+        const { email, username, password } = req.body;
 
-        const { user, token } = await authService.loginUser(email, password);
+        const loginIdentifier = email || username;
+
+        if (!loginIdentifier || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Моля, въведете имейл или потребителско име и парола.',
+            });
+        }
+
+        const { user, token } = await authService.loginUser(
+            loginIdentifier,
+            password,
+        );
 
         res.status(200).json({
             success: true,

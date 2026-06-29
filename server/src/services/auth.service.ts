@@ -15,7 +15,7 @@ export interface RegisterData {
 export const registerUser = async (userData: RegisterData) => {
     const existingEmail = await User.query().findOne({ email: userData.email });
     if (existingEmail) {
-        throw new Error('Потребител с този имейл вече същестува!');
+        throw new Error('Потребител с този имейл вече съществува!');
     }
 
     const existingUsername = await User.query().findOne({
@@ -49,14 +49,22 @@ export const registerUser = async (userData: RegisterData) => {
 
     const token = jwtUtil.sign({ id: newUser.id });
 
-    return { user: newUser, token };
+    const { passwordHash, ...safeUser } = newUser;
+
+    return { user: safeUser, token };
 };
 
-export const loginUser = async (email: string, plainPassword: string) => {
-    const user = await User.query().findOne({ email });
+export const loginUser = async (
+    emailOrUsername: string,
+    plainPassword: string,
+) => {
+    const user = await User.query()
+        .where('email', emailOrUsername)
+        .orWhere('username', emailOrUsername)
+        .first();
 
     if (!user) {
-        throw new Error('Грешен имейл или парола!');
+        throw new Error('Грешен имейл/потребителско име или парола!');
     }
 
     const isPasswordValid = await comparePasswords(
@@ -65,10 +73,19 @@ export const loginUser = async (email: string, plainPassword: string) => {
     );
 
     if (!isPasswordValid) {
-        throw new Error('Грешен имейл или парола!');
+        throw new Error('Грешен имейл/потребителско име или парола!');
     }
 
-    const token = jwtUtil.sign({ id: user.id });
+    const token = jwtUtil.sign({
+        id: user.id,
+        isAdmin: user.isAdmin,
+    });
 
-    return { user, token };
+    const fullUser = await User.query()
+        .findById(user.id)
+        .withGraphFetched('[student, teacher]');
+
+    const { passwordHash, ...safeUser } = fullUser!;
+
+    return { user: safeUser, token };
 };

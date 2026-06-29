@@ -10,6 +10,18 @@ router.get('/:id', courseController.getCourse);
 
 router.post('/', authMiddleware, requireAdmin, courseController.createCourse);
 router.put('/:id', authMiddleware, requireAdmin, courseController.updateCourse);
+router.post(
+    '/:id/teachers',
+    authMiddleware,
+    requireAdmin,
+    courseController.assignTeacher,
+);
+router.delete(
+    '/:id/teachers/:userId',
+    authMiddleware,
+    requireAdmin,
+    courseController.removeTeacher,
+);
 router.delete(
     '/:id',
     authMiddleware,

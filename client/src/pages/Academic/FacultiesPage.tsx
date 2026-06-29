@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {facultiesApi} from '../../api/faculties.api';
 import {useAuth} from '../../context/auth.context';
+import {unwrapList} from '../../api/utils';
 
 interface Faculty {
     id: number;
@@ -28,22 +29,7 @@ export const FacultiesPage = () => {
         try {
             setIsLoading(true);
             const response = await facultiesApi.getAll();
-
-            console.log('Отговор от сървъра:', response.data);
-
-            if (Array.isArray(response.data)) {
-                setFaculties(response.data);
-            } else if (response.data && Array.isArray(response.data.data)) {
-                setFaculties(response.data.data);
-            } else if (
-                response.data &&
-                Array.isArray(response.data.faculties)
-            ) {
-                setFaculties(response.data.faculties);
-            } else {
-                setFaculties([]);
-                console.error('Не успях да намеря масив в отговора!');
-            }
+            setFaculties(unwrapList<Faculty>(response));
         } catch (err: any) {
             console.error(err);
             setError('Грешка при зареждане на факултетите.');
@@ -63,54 +49,37 @@ export const FacultiesPage = () => {
         setIsFormOpen(true);
     };
 
-    const closeForm = () => {
-        setIsFormOpen(false);
-        setEditId(null);
-        setFormData({name: '', code: ''});
-    };
-
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!formData.name || !formData.code) {
-            alert('Моля, попълнете всички полета!');
-            return;
-        }
+        if (!formData.name || !formData.code)
+            return alert('Попълнете всички полета!');
 
         try {
             setIsSaving(true);
-            if (editId) {
-                await facultiesApi.update(editId, formData);
-            } else {
-                await facultiesApi.create(formData);
-            }
+            if (editId) await facultiesApi.update(editId, formData);
+            else await facultiesApi.create(formData);
 
             await loadFaculties();
-            closeForm();
+            setIsFormOpen(false);
+            setFormData({name: '', code: ''});
         } catch (err: any) {
-            console.error(err);
-            alert(err.response?.data?.message || 'Грешка при запазване!');
+            alert(err.response?.data?.message || 'Грешка при запис!');
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (
-            !window.confirm('Сигурен ли си, че искаш да изтриеш този факултет?')
-        )
-            return;
-
+        if (!window.confirm('Сигурен ли си?')) return;
         try {
             await facultiesApi.remove(id);
             loadFaculties();
-        } catch (err) {
+        } catch {
             alert('Грешка при изтриване!');
         }
     };
 
-    if (isLoading) return <div>Зареждане на факултети...</div>;
-    if (error) return <div className="alert-error">{error}</div>;
+    if (isLoading) return <div>Зареждане...</div>;
 
     return (
         <div>
@@ -118,17 +87,14 @@ export const FacultiesPage = () => {
                 style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center',
                     marginBottom: '20px'
                 }}
             >
                 <h2>Списък с Факултети</h2>
-
                 {user?.isAdmin && !isFormOpen && (
                     <button
                         onClick={() => openForm()}
                         className="btn btn-primary"
-                        style={{width: 'auto'}}
                     >
                         + Нов Факултет
                     </button>
@@ -137,20 +103,12 @@ export const FacultiesPage = () => {
 
             {isFormOpen && (
                 <div className="card" style={{marginBottom: '20px'}}>
-                    <h3>
-                        {editId
-                            ? 'Редактиране на Факултет'
-                            : 'Създаване на Факултет'}
-                    </h3>
-                    <form
-                        onSubmit={handleFormSubmit}
-                        style={{marginTop: '15px'}}
-                    >
+                    <h3>{editId ? 'Редактиране' : 'Създаване'}</h3>
+                    <form onSubmit={handleFormSubmit}>
                         <div className="form-group">
-                            <label>Код на факултета</label>
                             <input
-                                type="text"
                                 className="form-control"
+                                placeholder="Код (напр. FMI)"
                                 value={formData.code}
                                 onChange={e =>
                                     setFormData({
@@ -158,15 +116,10 @@ export const FacultiesPage = () => {
                                         code: e.target.value
                                     })
                                 }
-                                disabled={isSaving}
-                                placeholder="Напр. FMI"
                             />
-                        </div>
-                        <div className="form-group">
-                            <label>Име на факултета</label>
                             <input
-                                type="text"
                                 className="form-control"
+                                placeholder="Име на факултета"
                                 value={formData.name}
                                 onChange={e =>
                                     setFormData({
@@ -174,90 +127,57 @@ export const FacultiesPage = () => {
                                         name: e.target.value
                                     })
                                 }
-                                disabled={isSaving}
-                                placeholder="Напр. Факултет по математика и информатика"
                             />
                         </div>
-
-                        <div style={{display: 'flex', gap: '10px'}}>
-                            <button
-                                type="submit"
-                                className="btn btn-primary"
-                                disabled={isSaving}
-                                style={{width: 'auto'}}
-                            >
-                                {isSaving ? 'Запазване...' : 'Запази'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={closeForm}
-                                className="btn"
-                                disabled={isSaving}
-                            >
-                                Отказ
-                            </button>
-                        </div>
+                        <button
+                            type="submit"
+                            className="btn btn-primary"
+                            disabled={isSaving}
+                        >
+                            Запази
+                        </button>
+                        <button
+                            type="button"
+                            className="btn"
+                            onClick={() => setIsFormOpen(false)}
+                        >
+                            Отказ
+                        </button>
                     </form>
                 </div>
             )}
 
             <table
+                className="table"
                 border={1}
-                cellPadding={10}
-                style={{
-                    borderCollapse: 'collapse',
-                    width: '100%',
-                    backgroundColor: 'white'
-                }}
+                style={{width: '100%', borderCollapse: 'collapse'}}
             >
                 <thead>
-                    <tr style={{backgroundColor: '#f4f4f9'}}>
+                    <tr>
                         <th>ID</th>
                         <th>Код</th>
-                        <th>Име на Факултет</th>
+                        <th>Име</th>
                         {user?.isAdmin && <th>Действия</th>}
                     </tr>
                 </thead>
                 <tbody>
-                    {faculties.map(faculty => (
-                        <tr key={faculty.id}>
-                            <td>{faculty.id}</td>
-                            <td>{faculty.code}</td>
-                            <td>{faculty.name}</td>
-
+                    {faculties.map(f => (
+                        <tr key={f.id}>
+                            <td>{f.id}</td>
+                            <td>{f.code}</td>
+                            <td>{f.name}</td>
                             {user?.isAdmin && (
                                 <td>
-                                    <button
-                                        onClick={() => openForm(faculty)}
-                                        className="btn"
-                                        style={{
-                                            marginRight: '10px',
-                                            backgroundColor: '#ffc107',
-                                            color: '#000'
-                                        }}
-                                    >
+                                    <button onClick={() => openForm(f)}>
                                         Редакция
                                     </button>
-                                    <button
-                                        onClick={() => handleDelete(faculty.id)}
-                                        className="btn btn-danger"
-                                    >
+                                    <button onClick={() => handleDelete(f.id)}>
                                         Изтрий
                                     </button>
                                 </td>
                             )}
                         </tr>
                     ))}
-                    {faculties.length === 0 && (
-                        <tr>
-                            <td
-                                colSpan={user?.isAdmin ? 4 : 3}
-                                style={{textAlign: 'center'}}
-                            >
-                                Няма намерени факултети.
-                            </td>
-                        </tr>
-                    )}
                 </tbody>
             </table>
         </div>

@@ -6,7 +6,7 @@ export const Login = () => {
     const navigate = useNavigate();
     const {login} = useAuth();
 
-    const [email, setEmail] = useState('');
+    const [loginIdentifier, setLoginIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -15,14 +15,14 @@ export const Login = () => {
         e.preventDefault();
         setError('');
 
-        if (!email || !password) {
+        if (!loginIdentifier || !password) {
             setError('Моля, попълни всички полета!');
             return;
         }
 
         try {
             setIsLoading(true);
-            await login({email, password});
+            await login({email: loginIdentifier, username: loginIdentifier, password});
             navigate('/');
         } catch (err: any) {
             const backendMessage = err.response?.data?.message;
@@ -41,15 +41,17 @@ export const Login = () => {
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label htmlFor="email">Имейл</label>
+                        <label htmlFor="loginIdentifier">
+                            Имейл или Потребителско име
+                        </label>
                         <input
-                            id="email"
-                            type="email"
+                            id="loginIdentifier"
+                            type="text"
                             className="form-control"
-                            value={email}
-                            onChange={e => setEmail(e.target.value)}
+                            value={loginIdentifier}
+                            onChange={e => setLoginIdentifier(e.target.value)}
                             disabled={isLoading}
-                            placeholder="Въведи твоя имейл"
+                            placeholder="Напр. ivan@uni.bg или ivan_89"
                         />
                     </div>
 

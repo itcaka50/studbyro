@@ -1,19 +1,32 @@
 import React, {useState, useEffect} from 'react';
 import {coursesApi} from '../../api/courses.api';
 import {departmentsApi} from '../../api/departments.api';
+import {teachersApi} from '../../api/teachers.api';
 import {useAuth} from '../../context/auth.context';
+import {unwrapList, unwrapData} from '../../api/utils';
 
 interface Course {
     id: number;
     code: string;
     name: string;
-    credits: number;
-    department_id: number;
+    departmentId: number;
+    totalHours?: number;
+    link?: string;
 }
 
 interface Department {
     id: number;
     name: string;
+}
+
+interface CourseTeacher {
+    userId: number;
+    user?: {name: string; email: string};
+}
+
+interface TeacherOption {
+    userId: number;
+    user?: {name: string};
 }
 
 export const CoursesPage = () => {
@@ -29,10 +42,15 @@ export const CoursesPage = () => {
     const [formData, setFormData] = useState({
         name: '',
         code: '',
-        credits: '',
-        department_id: ''
+        departmentId: 0,
+        totalHours: 0
     });
     const [isSaving, setIsSaving] = useState(false);
+
+    const [managingId, setManagingId] = useState<number | null>(null);
+    const [courseTeachers, setCourseTeachers] = useState<CourseTeacher[]>([]);
+    const [allTeachers, setAllTeachers] = useState<TeacherOption[]>([]);
+    const [assignTeacherId, setAssignTeacherId] = useState(0);
 
     useEffect(() => {
         loadData();
@@ -46,16 +64,8 @@ export const CoursesPage = () => {
                 departmentsApi.getAll()
             ]);
 
-            setCourses(
-                Array.isArray(coursesRes.data)
-                    ? coursesRes.data
-                    : coursesRes.data?.data || []
-            );
-            setDepartments(
-                Array.isArray(deptRes.data)
-                    ? deptRes.data
-                    : deptRes.data?.data || []
-            );
+            setCourses(unwrapList<Course>(coursesRes));
+            setDepartments(unwrapList<Department>(deptRes));
         } catch (err: any) {
             console.error(err);
             setError('Грешка при зареждане на данните.');
@@ -70,12 +80,12 @@ export const CoursesPage = () => {
             setFormData({
                 name: course.name,
                 code: course.code,
-                credits: course.credits.toString(),
-                department_id: course.department_id.toString()
+                departmentId: course.departmentId,
+                totalHours: course.totalHours ?? 0
             });
         } else {
             setEditId(null);
-            setFormData({name: '', code: '', credits: '', department_id: ''});
+            setFormData({name: '', code: '', departmentId: 0, totalHours: 0});
         }
         setIsFormOpen(true);
     };
@@ -83,30 +93,28 @@ export const CoursesPage = () => {
     const closeForm = () => {
         setIsFormOpen(false);
         setEditId(null);
-        setFormData({name: '', code: '', credits: '', department_id: ''});
+        setFormData({name: '', code: '', departmentId: 0, totalHours: 0});
     };
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (
-            !formData.name ||
-            !formData.code ||
-            !formData.credits ||
-            !formData.department_id
-        ) {
-            alert('Моля, попълнете всички полета!');
+        if (!formData.name || !formData.code || !formData.departmentId) {
+            alert('Моля, попълнете коректно всички полета!');
             return;
         }
 
+        const payload = {
+            name: formData.name,
+            code: formData.code,
+            departmentId: formData.departmentId,
+            ...(formData.totalHours > 0
+                ? {totalHours: formData.totalHours}
+                : {})
+        };
+
         try {
             setIsSaving(true);
-            const payload = {
-                ...formData,
-                credits: Number(formData.credits),
-                department_id: Number(formData.department_id)
-            };
-
             if (editId) {
                 await coursesApi.update(editId, payload);
             } else {
@@ -140,6 +148,52 @@ export const CoursesPage = () => {
         return dept ? dept.name : 'Неизвестна катедра';
     };
 
+    const openTeacherManager = async (course: Course) => {
+        try {
+            setManagingId(course.id);
+            const [courseRes, teachersRes] = await Promise.all([
+                coursesApi.getById(course.id),
+                teachersApi.getAll()
+            ]);
+            const detail = unwrapData<{teachers?: CourseTeacher[]}>(courseRes);
+            setCourseTeachers(detail.teachers ?? []);
+            setAllTeachers(unwrapList<TeacherOption>(teachersRes));
+            setAssignTeacherId(0);
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Грешка при зареждане!');
+        }
+    };
+
+    const reloadCourseTeachers = async (courseId: number) => {
+        const res = await coursesApi.getById(courseId);
+        const detail = unwrapData<{teachers?: CourseTeacher[]}>(res);
+        setCourseTeachers(detail.teachers ?? []);
+    };
+
+    const handleAssignTeacher = async () => {
+        if (!managingId || !assignTeacherId) {
+            alert('Изберете преподавател!');
+            return;
+        }
+        try {
+            await coursesApi.assignTeacher(managingId, assignTeacherId);
+            await reloadCourseTeachers(managingId);
+            setAssignTeacherId(0);
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Грешка при назначаване!');
+        }
+    };
+
+    const handleRemoveTeacher = async (userId: number) => {
+        if (!managingId || !window.confirm('Премахни преподавателя?')) return;
+        try {
+            await coursesApi.removeTeacher(managingId, userId);
+            await reloadCourseTeachers(managingId);
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Грешка при премахване!');
+        }
+    };
+
     if (isLoading) return <div>Зареждане на курсове...</div>;
     if (error) return <div className="alert-error">{error}</div>;
 
@@ -154,7 +208,6 @@ export const CoursesPage = () => {
                 }}
             >
                 <h2>Списък с Курсове (Учебни дисциплини)</h2>
-
                 {user?.isAdmin && !isFormOpen && (
                     <button
                         onClick={() => openForm()}
@@ -179,16 +232,18 @@ export const CoursesPage = () => {
                             <label>Катедра</label>
                             <select
                                 className="form-control"
-                                value={formData.department_id}
+                                value={formData.departmentId}
                                 onChange={e =>
                                     setFormData({
                                         ...formData,
-                                        department_id: e.target.value
+                                        departmentId: Number(e.target.value)
                                     })
                                 }
                                 disabled={isSaving}
                             >
-                                <option value="">-- Изберете катедра --</option>
+                                <option value={0}>
+                                    -- Изберете катедра --
+                                </option>
                                 {departments.map(d => (
                                     <option key={d.id} value={d.id}>
                                         {d.name}
@@ -232,21 +287,20 @@ export const CoursesPage = () => {
                         </div>
 
                         <div className="form-group">
-                            <label>Кредити (ECTS)</label>
+                            <label>Общо часове (по избор)</label>
                             <input
                                 type="number"
-                                min="1"
-                                max="30"
+                                min="0"
                                 className="form-control"
-                                value={formData.credits}
+                                value={formData.totalHours}
                                 onChange={e =>
                                     setFormData({
                                         ...formData,
-                                        credits: e.target.value
+                                        totalHours: Number(e.target.value)
                                     })
                                 }
                                 disabled={isSaving}
-                                placeholder="Напр. 6"
+                                placeholder="Напр. 60"
                             />
                         </div>
 
@@ -286,7 +340,7 @@ export const CoursesPage = () => {
                         <th>ID</th>
                         <th>Код</th>
                         <th>Име на Курс</th>
-                        <th>Кредити</th>
+                        <th>Часове</th>
                         <th>Към Катедра</th>
                         {user?.isAdmin && <th>Действия</th>}
                     </tr>
@@ -297,11 +351,20 @@ export const CoursesPage = () => {
                             <td>{course.id}</td>
                             <td>{course.code}</td>
                             <td>{course.name}</td>
-                            <td>{course.credits}</td>
-                            <td>{getDepartmentName(course.department_id)}</td>
-
+                            <td>{course.totalHours ?? '—'}</td>
+                            <td>{getDepartmentName(course.departmentId)}</td>
                             {user?.isAdmin && (
                                 <td>
+                                    <button
+                                        onClick={() => openTeacherManager(course)}
+                                        className="btn btn-primary"
+                                        style={{
+                                            marginRight: '10px',
+                                            width: 'auto'
+                                        }}
+                                    >
+                                        Преподаватели
+                                    </button>
                                     <button
                                         onClick={() => openForm(course)}
                                         className="btn"
@@ -335,6 +398,116 @@ export const CoursesPage = () => {
                     )}
                 </tbody>
             </table>
+
+            {user?.isAdmin && managingId && (
+                <div className="card" style={{marginTop: '25px'}}>
+                    <div
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}
+                    >
+                        <h3>
+                            Преподаватели за:{' '}
+                            {courses.find(c => c.id === managingId)?.name}
+                        </h3>
+                        <button
+                            className="btn"
+                            onClick={() => setManagingId(null)}
+                        >
+                            Затвори
+                        </button>
+                    </div>
+
+                    <div
+                        style={{
+                            display: 'flex',
+                            gap: '10px',
+                            marginTop: '15px',
+                            alignItems: 'flex-end'
+                        }}
+                    >
+                        <div className="form-group" style={{flex: 1}}>
+                            <label>Назначи преподавател</label>
+                            <select
+                                className="form-control"
+                                value={assignTeacherId}
+                                onChange={e =>
+                                    setAssignTeacherId(Number(e.target.value))
+                                }
+                            >
+                                <option value={0}>
+                                    -- Изберете преподавател --
+                                </option>
+                                {allTeachers
+                                    .filter(
+                                        t =>
+                                            !courseTeachers.some(
+                                                ct =>
+                                                    ct.userId === t.userId
+                                            )
+                                    )
+                                    .map(t => (
+                                        <option key={t.userId} value={t.userId}>
+                                            {t.user?.name ?? t.userId}
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
+                        <button
+                            className="btn btn-primary"
+                            style={{width: 'auto'}}
+                            onClick={handleAssignTeacher}
+                        >
+                            Назначи
+                        </button>
+                    </div>
+
+                    <table
+                        border={1}
+                        cellPadding={10}
+                        style={{
+                            width: '100%',
+                            borderCollapse: 'collapse',
+                            marginTop: '15px'
+                        }}
+                    >
+                        <thead>
+                            <tr style={{backgroundColor: '#f4f4f9'}}>
+                                <th>Име</th>
+                                <th>Имейл</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {courseTeachers.map(t => (
+                                <tr key={t.userId}>
+                                    <td>{t.user?.name ?? '—'}</td>
+                                    <td>{t.user?.email ?? '—'}</td>
+                                    <td>
+                                        <button
+                                            className="btn btn-danger"
+                                            onClick={() =>
+                                                handleRemoveTeacher(t.userId)
+                                            }
+                                        >
+                                            Премахни
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {courseTeachers.length === 0 && (
+                                <tr>
+                                    <td colSpan={3} style={{textAlign: 'center'}}>
+                                        Няма назначени преподаватели.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 };

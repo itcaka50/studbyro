@@ -1,6 +1,7 @@
 import { BaseModel } from './base.model';
-import { Department } from './department.model';
 import { Teacher } from './teacher.model';
+import { Curriculum } from './curriculum.model';
+import { Department } from './department.model';
 
 export class Course extends BaseModel {
     static get tableName() {
@@ -12,6 +13,8 @@ export class Course extends BaseModel {
     link?: string;
     totalHours?: number;
     departmentId!: number;
+    teachers?: Teacher[];
+    credits?: number;
 
     static get relationMappings() {
         return {
@@ -29,10 +32,22 @@ export class Course extends BaseModel {
                 join: {
                     from: 'courses.id',
                     through: {
-                        from: 'teachers_courses.courseId',
-                        to: 'teachers_courses.teacherId',
+                        from: 'teachers_courses.course_id',
+                        to: 'teachers_courses.teacher_id',
                     },
                     to: 'teachers.userId',
+                },
+            },
+            curriculums: {
+                relation: BaseModel.ManyToManyRelation,
+                modelClass: Curriculum,
+                join: {
+                    from: 'courses.id',
+                    through: {
+                        from: 'curriculums_courses.course_id',
+                        to: 'curriculums_courses.curriculum_id',
+                    },
+                    to: 'curriculums.id',
                 },
             },
         };

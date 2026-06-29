@@ -1,5 +1,7 @@
 import { Teacher } from '../models/teacher.model';
 import { TeacherCourse } from '../models/teachers_courses.model';
+import { StudentCourse } from '../models/students_courses.model';
+import { getSchedulesForCourses } from './schedule.service';
 
 export interface TeacherCreateData {
     userId: number;
@@ -125,4 +127,35 @@ export const getTeacherCourses = async (userId: number) => {
         .withGraphFetched('course');
 
     return coursesRecords;
+};
+
+export const teacherTeachesCourse = async (
+    userId: number,
+    courseId: number,
+) => {
+    const assignment = await TeacherCourse.query().findOne({
+        teacherId: userId,
+        courseId,
+    });
+    return !!assignment;
+};
+
+export const getStudentsInTeacherCourse = async (
+    userId: number,
+    courseId: number,
+) => {
+    const teaches = await teacherTeachesCourse(userId, courseId);
+    if (!teaches) {
+        throw new Error('Не водите този курс!');
+    }
+
+    return StudentCourse.query()
+        .where({ courseId })
+        .withGraphFetched('[student.user]');
+};
+
+export const getTeacherSchedule = async (userId: number) => {
+    const assignments = await TeacherCourse.query().where({ teacherId: userId });
+    const courseIds = assignments.map((row) => row.courseId);
+    return getSchedulesForCourses(courseIds);
 };

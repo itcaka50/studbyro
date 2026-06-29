@@ -2,11 +2,12 @@ import React, {useState, useEffect} from 'react';
 import {departmentsApi} from '../../api/departments.api';
 import {facultiesApi} from '../../api/faculties.api';
 import {useAuth} from '../../context/auth.context';
+import {unwrapList} from '../../api/utils';
 
 interface Department {
     id: number;
     name: string;
-    faculty_id: number;
+    facultyId: number;
 }
 
 interface Faculty {
@@ -26,7 +27,7 @@ export const DepartmentsPage = () => {
     const [editId, setEditId] = useState<number | null>(null);
     const [formData, setFormData] = useState({
         name: '',
-        faculty_id: ''
+        facultyId: 0
     });
     const [isSaving, setIsSaving] = useState(false);
 
@@ -42,16 +43,8 @@ export const DepartmentsPage = () => {
                 facultiesApi.getAll()
             ]);
 
-            setDepartments(
-                Array.isArray(deptRes.data)
-                    ? deptRes.data
-                    : deptRes.data?.data || []
-            );
-            setFaculties(
-                Array.isArray(facRes.data)
-                    ? facRes.data
-                    : facRes.data?.data || []
-            );
+            setDepartments(unwrapList<Department>(deptRes));
+            setFaculties(unwrapList<Faculty>(facRes));
         } catch (err: any) {
             console.error(err);
             setError('Грешка при зареждане на данните.');
@@ -65,13 +58,13 @@ export const DepartmentsPage = () => {
             setEditId(dept.id);
             setFormData({
                 name: dept.name,
-                faculty_id: String(dept.faculty_id)
+                facultyId: dept.facultyId
             });
         } else {
             setEditId(null);
             setFormData({
                 name: '',
-                faculty_id: faculties.length > 0 ? String(faculties[0].id) : ''
+                facultyId: faculties.length > 0 ? faculties[0].id : 0
             });
         }
         setIsFormOpen(true);
@@ -80,28 +73,23 @@ export const DepartmentsPage = () => {
     const closeForm = () => {
         setIsFormOpen(false);
         setEditId(null);
-        setFormData({name: '', faculty_id: ''});
+        setFormData({name: '', facultyId: 0});
     };
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.name || !formData.faculty_id) {
+        if (!formData.name || formData.facultyId === 0) {
             alert('Моля, попълнете името и изберете факултет!');
             return;
         }
 
         try {
             setIsSaving(true);
-            const payload = {
-                ...formData,
-                faculty_id: Number(formData.faculty_id)
-            };
-
             if (editId) {
-                await departmentsApi.update(editId, payload);
+                await departmentsApi.update(editId, formData);
             } else {
-                await departmentsApi.create(payload);
+                await departmentsApi.create(formData);
             }
 
             await loadData();
@@ -145,7 +133,6 @@ export const DepartmentsPage = () => {
                 }}
             >
                 <h2>Списък с Катедри</h2>
-
                 {user?.isAdmin && !isFormOpen && (
                     <button
                         onClick={() => openForm()}
@@ -189,20 +176,18 @@ export const DepartmentsPage = () => {
                             <label>Принадлежи към Факултет</label>
                             <select
                                 className="form-control"
-                                value={formData.faculty_id}
+                                value={formData.facultyId}
                                 onChange={e =>
                                     setFormData({
                                         ...formData,
-                                        faculty_id: e.target.value
+                                        facultyId: Number(e.target.value)
                                     })
                                 }
                                 disabled={isSaving || faculties.length === 0}
                             >
-                                {faculties.length === 0 && (
-                                    <option value="">
-                                        Няма създадени факултети
-                                    </option>
-                                )}
+                                <option value={0}>
+                                    -- Изберете факултет --
+                                </option>
                                 {faculties.map(fac => (
                                     <option key={fac.id} value={fac.id}>
                                         {fac.name}
@@ -263,8 +248,7 @@ export const DepartmentsPage = () => {
                             <td>
                                 <strong>{dept.name}</strong>
                             </td>
-                            <td>{getFacultyName(dept.faculty_id)}</td>
-
+                            <td>{getFacultyName(dept.facultyId)}</td>
                             {user?.isAdmin && (
                                 <td>
                                     <button

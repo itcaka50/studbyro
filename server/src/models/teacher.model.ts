@@ -1,6 +1,7 @@
 import { BaseModel } from './base.model';
 import { User } from './user.model';
 import { Department } from './department.model';
+import { Course } from './course.model';
 
 export class Teacher extends BaseModel {
     static get tableName() {
@@ -16,6 +17,7 @@ export class Teacher extends BaseModel {
 
     user?: User;
     department?: Department;
+    courses?: Course[];
 
     static get relationMappings() {
         return {
@@ -25,6 +27,18 @@ export class Teacher extends BaseModel {
                 join: {
                     from: 'teachers.userId',
                     to: 'users.id',
+                },
+            },
+            courses: {
+                relation: BaseModel.ManyToManyRelation,
+                modelClass: Course,
+                join: {
+                    from: 'teachers.userId',
+                    through: {
+                        from: 'teachers_courses.teacher_id',
+                        to: 'teachers_courses.course_id',
+                    },
+                    to: 'courses.id',
                 },
             },
             department: {

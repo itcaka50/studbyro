@@ -9,7 +9,7 @@ export const authApi = {
 
     register: (userData: any) => api.post('/auth/register', userData),
 
-    getProfile: () => api.get('/auth/profile'),
+    getProfile: () => api.get('/users/profile'),
 
     logout: () => localStorage.removeItem('token')
 };

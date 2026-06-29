@@ -5,6 +5,7 @@ import { requireAdmin } from '../middlewares/role.middleware';
 
 const router = Router();
 
+router.get('/', scheduleController.listSchedules);
 router.get('/course/:courseId', scheduleController.getCourseSchedule);
 
 router.post(

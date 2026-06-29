@@ -12,6 +12,7 @@ import {TeachersPage} from './pages/Academic/TeachersPage';
 import {StudentsPage} from './pages/Academic/StudentsPage';
 import {CurriculumsPage} from './pages/Academic/CurriculumPage';
 import {UsersPage} from './pages/Academic/UsersPage';
+import {SchedulesPage} from './pages/Academic/SchedulesPage';
 
 const App = () => {
     return (
@@ -36,6 +37,7 @@ const App = () => {
                             element={<CurriculumsPage />}
                         />
                         <Route path="/users" element={<UsersPage />} />
+                        <Route path="/schedules" element={<SchedulesPage />} />
                     </Routes>
                 </div>
             </Router>

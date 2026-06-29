@@ -8,13 +8,15 @@ export interface UserFilters {
 }
 
 export const getUserProfile = async (userId: number) => {
-    const user = await User.query().findById(userId);
+    const user = await User.query()
+        .findById(userId)
+        .withGraphFetched('[student, teacher]');
 
     if (!user) {
         throw new Error('Потребителят не е намерен!');
     }
 
-    const { passwordHash, ...safeUserData } = user;
+    const { passwordHash, ...safeUserData } = user as any;
 
     return safeUserData;
 };
@@ -35,7 +37,7 @@ export const updateUserProfile = async (
         throw new Error('Потребителят не е намерен за обновление!');
     }
 
-    const { passwordHash, ...safeUserData } = updatedUser;
+    const { passwordHash, ...safeUserData } = updatedUser as any;
     return safeUserData;
 };
 
@@ -76,12 +78,17 @@ export const createUserWithRole = async (
     return await User.transaction(async (trx) => {
         const user = await User.query(trx).insert(userData);
 
-        if (role === 'student') {
+        if (role === 'student' && roleData) {
             await Student.query(trx).insert({ ...roleData, userId: user.id });
-        } else if (role === 'teacher') {
+        } else if (role === 'teacher' && roleData) {
             await Teacher.query(trx).insert({ ...roleData, userId: user.id });
         }
 
-        return user;
+        const fullUser = await User.query(trx)
+            .findById(user.id)
+            .withGraphFetched('[student, teacher]');
+
+        const { passwordHash, ...safeUser } = fullUser as any;
+        return safeUser;
     });
 };

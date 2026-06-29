@@ -10,7 +10,7 @@ export class Student extends BaseModel {
     }
 
     static get idColumn() {
-        return 'faculty_number';
+        return 'facultyNumber';
     }
 
     facultyNumber!: string;

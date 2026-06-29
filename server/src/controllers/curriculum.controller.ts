@@ -43,6 +43,46 @@ export const listCurriculums = async (
     }
 };
 
+export const getCurriculum = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const curriculum = await curriculumService.getCurriculumById(
+            Number(req.params.id),
+        );
+
+        res.status(200).json({
+            success: true,
+            data: curriculum,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateCurriculum = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const updated = await curriculumService.updateCurriculum(
+            Number(req.params.id),
+            req.body,
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Учебният план е обновен успешно!',
+            data: updated,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const addCourseToCurriculum = async (
     req: Request,
     res: Response,
@@ -62,6 +102,48 @@ export const addCourseToCurriculum = async (
             success: true,
             message: 'Курсът е добавен към учебния план успешно!',
             data: addedCourse,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateCurriculumCourse = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const updated = await curriculumService.updateCurriculumCourse(
+            Number(req.params.id),
+            Number(req.params.courseId),
+            Number(req.body.credits),
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Кредитите са обновени!',
+            data: updated,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const removeCourseFromCurriculum = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        await curriculumService.removeCourseFromCurriculum(
+            Number(req.params.id),
+            Number(req.params.courseId),
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Курсът е премахнат от учебния план.',
         });
     } catch (error) {
         next(error);

@@ -1,30 +1,21 @@
 import React, {useState, useEffect} from 'react';
 import {studentsApi} from '../../api/students.api';
-import {useAuth} from '../../context/auth.context';
+import {unwrapList} from '../../api/utils';
 
 interface Student {
-    faculty_number: string;
+    facultyNumber: string;
     ucn: string;
     financing: 'държавна поръчка' | 'платено обучение';
     address: string;
-    user_id: number;
-    curriculum_id: number;
+    userId: number;
+    curriculumId: number;
+    user?: {name: string; email: string};
+    curriculum?: {name: string};
 }
 
 export const StudentsPage = () => {
-    const {user} = useAuth();
     const [students, setStudents] = useState<Student[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [formData, setFormData] = useState({
-        faculty_number: '',
-        ucn: '',
-        financing: 'държавна поръчка' as const,
-        address: '',
-        user_id: '',
-        curriculum_id: ''
-    });
-    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         loadStudents();
@@ -34,179 +25,56 @@ export const StudentsPage = () => {
         setIsLoading(true);
         try {
             const res = await studentsApi.getAll();
-            setStudents(
-                Array.isArray(res.data) ? res.data : res.data?.data || []
-            );
+            setStudents(unwrapList<Student>(res));
         } catch (err) {
-            console.error(err);
+            console.error('Грешка при зареждане на студентите:', err);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleFormSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSaving(true);
-        try {
-            const payload = {
-                ...formData,
-                user_id: Number(formData.user_id),
-                curriculum_id: Number(formData.curriculum_id)
-            };
-
-            await studentsApi.create(payload);
-            await loadStudents();
-            setIsFormOpen(false);
-        } catch (err) {
-            alert('Грешка при запис!');
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    if (isLoading) return <div>Зареждане...</div>;
+    if (isLoading) return <div>Зареждане на списъка със студенти...</div>;
 
     return (
         <div>
             <h2>Списък със Студенти</h2>
-            {user?.isAdmin && (
-                <button
-                    onClick={() => setIsFormOpen(!isFormOpen)}
-                    className="btn btn-primary"
-                    style={{marginBottom: '20px'}}
-                >
-                    {isFormOpen ? 'Затвори формата' : '+ Нов Студент'}
-                </button>
-            )}
-
-            {isFormOpen && (
-                <div className="card" style={{marginBottom: '20px'}}>
-                    <form onSubmit={handleFormSubmit}>
-                        <div className="form-group">
-                            <label>Фак. номер</label>
-                            <input
-                                className="form-control"
-                                value={formData.faculty_number}
-                                onChange={e =>
-                                    setFormData({
-                                        ...formData,
-                                        faculty_number: e.target.value
-                                    })
-                                }
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>ЕГН (UCN)</label>
-                            <input
-                                className="form-control"
-                                value={formData.ucn}
-                                onChange={e =>
-                                    setFormData({
-                                        ...formData,
-                                        ucn: e.target.value
-                                    })
-                                }
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>Финансиране</label>
-                            <select
-                                className="form-control"
-                                value={formData.financing}
-                                onChange={e =>
-                                    setFormData({
-                                        ...formData,
-                                        financing: e.target.value as any
-                                    })
-                                }
-                            >
-                                <option value="държавна поръчка">
-                                    Държавна поръчка
-                                </option>
-                                <option value="платено обучение">
-                                    Платено обучение
-                                </option>
-                            </select>
-                        </div>
-                        <div className="form-group">
-                            <label>Адрес</label>
-                            <input
-                                className="form-control"
-                                value={formData.address}
-                                onChange={e =>
-                                    setFormData({
-                                        ...formData,
-                                        address: e.target.value
-                                    })
-                                }
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>User ID</label>
-                            <input
-                                type="number"
-                                className="form-control"
-                                value={formData.user_id}
-                                onChange={e =>
-                                    setFormData({
-                                        ...formData,
-                                        user_id: e.target.value
-                                    })
-                                }
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>Curriculum ID</label>
-                            <input
-                                type="number"
-                                className="form-control"
-                                value={formData.curriculum_id}
-                                onChange={e =>
-                                    setFormData({
-                                        ...formData,
-                                        curriculum_id: e.target.value
-                                    })
-                                }
-                                required
-                            />
-                        </div>
-                        <button className="btn btn-primary" disabled={isSaving}>
-                            Запази
-                        </button>
-                    </form>
-                </div>
-            )}
-
             <table
                 border={1}
                 cellPadding={10}
-                style={{borderCollapse: 'collapse', width: '100%'}}
+                style={{
+                    borderCollapse: 'collapse',
+                    width: '100%',
+                    backgroundColor: 'white'
+                }}
             >
                 <thead>
-                    <tr>
+                    <tr style={{backgroundColor: '#f4f4f9'}}>
                         <th>Фак. №</th>
+                        <th>Име</th>
                         <th>ЕГН</th>
                         <th>Финансиране</th>
                         <th>Адрес</th>
-                        <th>User ID</th>
-                        <th>Curriculum ID</th>
+                        <th>Учебен план</th>
                     </tr>
                 </thead>
                 <tbody>
                     {students.map(s => (
-                        <tr key={s.faculty_number}>
-                            <td>{s.faculty_number}</td>
+                        <tr key={s.facultyNumber}>
+                            <td>{s.facultyNumber}</td>
+                            <td>{s.user?.name ?? '—'}</td>
                             <td>{s.ucn}</td>
                             <td>{s.financing}</td>
                             <td>{s.address}</td>
-                            <td>{s.user_id}</td>
-                            <td>{s.curriculum_id}</td>
+                            <td>{s.curriculum?.name ?? s.curriculumId}</td>
                         </tr>
                     ))}
+                    {students.length === 0 && (
+                        <tr>
+                            <td colSpan={6} style={{textAlign: 'center'}}>
+                                Няма намерени записи.
+                            </td>
+                        </tr>
+                    )}
                 </tbody>
             </table>
         </div>

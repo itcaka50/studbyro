@@ -1,11 +1,22 @@
 import { Router } from 'express';
 import * as studentController from '../controllers/student.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
-import { requireAdmin } from '../middlewares/role.middleware';
+import { requireAdmin, requireStudent } from '../middlewares/role.middleware';
 
 const router = Router();
 
 router.use(authMiddleware);
+
+router.get('/me', requireStudent, studentController.getMyProfile);
+router.get('/me/courses', requireStudent, studentController.getMyCourses);
+router.get(
+    '/me/courses/available',
+    requireStudent,
+    studentController.getMyAvailableCourses,
+);
+router.post('/me/courses', requireStudent, studentController.enrollMyCourse);
+router.get('/me/schedule', requireStudent, studentController.getMySchedule);
+router.get('/me/program', requireStudent, studentController.getMyProgram);
 
 router.get('/', studentController.listStudents);
 router.get('/:facultyNumber', studentController.getStudent);
