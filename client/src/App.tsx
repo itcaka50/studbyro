@@ -13,6 +13,7 @@ import {StudentsPage} from './pages/Academic/StudentsPage';
 import {CurriculumsPage} from './pages/Academic/CurriculumPage';
 import {UsersPage} from './pages/Academic/UsersPage';
 import {SchedulesPage} from './pages/Academic/SchedulesPage';
+import {UserProfilePage} from './pages/Profile/user_profile';
 
 const App = () => {
     return (
@@ -38,6 +39,7 @@ const App = () => {
                         />
                         <Route path="/users" element={<UsersPage />} />
                         <Route path="/schedules" element={<SchedulesPage />} />
+                        <Route path="/profile" element={<UserProfilePage />} />
                     </Routes>
                 </div>
             </Router>

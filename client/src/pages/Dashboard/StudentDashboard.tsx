@@ -5,7 +5,7 @@ import {unwrapList, unwrapData} from '../../api/utils';
 import {WeeklyScheduleCalendar} from '../../components/schedule/WeeklyScheduleCalendar';
 import {StudentGradesPanel} from '../../components/schedule/StudentGradesPanel';
 
-type Tab = 'specialty' | 'courses' | 'program' | 'grades' | 'schedule';
+type Tab = 'specialty' | 'program' | 'grades' | 'schedule';
 
 interface ProgramCourse {
     id: number;
@@ -101,7 +101,7 @@ export const StudentDashboard = () => {
             setError('');
             try {
                 if (tab === 'specialty') await loadProfile();
-                if (tab === 'courses' || tab === 'grades') await loadCourses();
+                if (tab === 'grades') await loadCourses();
                 if (tab === 'program') await loadProgram();
                 if (tab === 'schedule') await loadSchedule();
             } catch (err: any) {
@@ -121,7 +121,7 @@ export const StudentDashboard = () => {
             setEnrollingId(courseId);
             await studentsApi.enrollInCourse(courseId);
             await loadProgram();
-            if (tab === 'courses' || tab === 'grades') await loadCourses();
+            if (tab === 'grades') await loadCourses();
         } catch (err: any) {
             alert(err.response?.data?.message || 'Грешка при записване!');
         } finally {
@@ -143,12 +143,6 @@ export const StudentDashboard = () => {
                     onClick={() => setTab('specialty')}
                 >
                     Моята специалност
-                </button>
-                <button
-                    style={tabStyle(tab === 'courses')}
-                    onClick={() => setTab('courses')}
-                >
-                    Мои курсове
                 </button>
                 <button
                     style={tabStyle(tab === 'program')}
@@ -224,34 +218,6 @@ export const StudentDashboard = () => {
                                 </div>
                             </div>
                         </div>
-                    )}
-
-                    {tab === 'courses' && (
-                        <table border={1} cellPadding={10} style={tableStyle}>
-                            <thead>
-                                <tr style={{backgroundColor: '#f4f4f9'}}>
-                                    <th>Код</th>
-                                    <th>Дисциплина</th>
-                                    <th>Оценка</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {enrolled.map(row => (
-                                    <tr key={row.id}>
-                                        <td>{row.course?.code ?? '—'}</td>
-                                        <td>{row.course?.name ?? '—'}</td>
-                                        <td>{row.grade ?? '—'}</td>
-                                    </tr>
-                                ))}
-                                {enrolled.length === 0 && (
-                                    <tr>
-                                        <td colSpan={3} style={{textAlign: 'center'}}>
-                                            Не сте записани за курсове.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
                     )}
 
                     {tab === 'program' && (

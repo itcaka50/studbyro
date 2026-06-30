@@ -1,5 +1,6 @@
 import { User } from '../models/user.model';
 import { hashPassword, comparePasswords } from '../utils/hash.util';
+import { validatePassword } from '../utils/password.util';
 import { JwtUtil } from '../utils/jwt.util';
 
 const jwtUtil = new JwtUtil();
@@ -13,6 +14,8 @@ export interface RegisterData {
 }
 
 export const registerUser = async (userData: RegisterData) => {
+    validatePassword(userData.password);
+
     const existingEmail = await User.query().findOne({ email: userData.email });
     if (existingEmail) {
         throw new Error('Потребител с този имейл вече съществува!');
@@ -58,6 +61,8 @@ export const loginUser = async (
     emailOrUsername: string,
     plainPassword: string,
 ) => {
+    validatePassword(plainPassword);
+
     const user = await User.query()
         .where('email', emailOrUsername)
         .orWhere('username', emailOrUsername)

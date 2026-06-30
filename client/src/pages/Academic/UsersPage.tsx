@@ -3,16 +3,27 @@ import {usersApi} from '../../api/users.api';
 import {departmentsApi} from '../../api/departments.api';
 import {curriculumsApi} from '../../api/curriculums.api';
 import {useAuth} from '../../context/auth.context';
-import {unwrapList} from '../../api/utils';
+import {unwrapList, unwrapData} from '../../api/utils';
+import {
+    getPasswordValidationError,
+    PASSWORD_REQUIREMENTS_MESSAGE
+} from '../../utils/password';
 
 interface User {
     id: number;
     username: string;
     name: string;
     email: string;
+    phoneNumber?: string;
     isAdmin: boolean;
-    student?: {facultyNumber: string};
-    teacher?: {userId: number};
+    student?: {
+        facultyNumber: string;
+        ucn?: string;
+        financing?: 'държавна поръчка' | 'платено обучение';
+        address?: string;
+        curriculumId?: number;
+    };
+    teacher?: {userId: number; departmentId?: number};
 }
 
 export const UsersPage = () => {
@@ -22,6 +33,7 @@ export const UsersPage = () => {
     const [curriculums, setCurriculums] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editId, setEditId] = useState<number | null>(null);
 
     const [formData, setFormData] = useState({
         username: '',
@@ -40,6 +52,23 @@ export const UsersPage = () => {
     });
 
     const [isSaving, setIsSaving] = useState(false);
+
+    const [editForm, setEditForm] = useState({
+        username: '',
+        name: '',
+        email: '',
+        phoneNumber: '',
+        role: 'user' as 'user' | 'student' | 'teacher' | 'admin',
+        ucn: '',
+        financing: 'държавна поръчка' as
+            | 'държавна поръчка'
+            | 'платено обучение',
+        address: '',
+        curriculumId: 0,
+        departmentId: 0
+    });
+
+    const [isEditSaving, setIsEditSaving] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -70,8 +99,89 @@ export const UsersPage = () => {
         return 'Потребител';
     };
 
+    const getUserRole = (u: User): typeof editForm.role => {
+        if (u.isAdmin) return 'admin';
+        if (u.student) return 'student';
+        if (u.teacher) return 'teacher';
+        return 'user';
+    };
+
+    const openEdit = async (u: User) => {
+        try {
+            setIsFormOpen(false);
+            const res = await usersApi.getById(u.id);
+            const fullUser = unwrapData<User>(res);
+            setEditId(fullUser.id);
+            setEditForm({
+                username: fullUser.username,
+                name: fullUser.name,
+                email: fullUser.email,
+                phoneNumber: fullUser.phoneNumber ?? '',
+                role: getUserRole(fullUser),
+                ucn: fullUser.student?.ucn ?? '',
+                financing:
+                    fullUser.student?.financing ?? 'държавна поръчка',
+                address: fullUser.student?.address ?? '',
+                curriculumId: fullUser.student?.curriculumId ?? 0,
+                departmentId: fullUser.teacher?.departmentId ?? 0
+            });
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Грешка при зареждане!');
+        }
+    };
+
+    const closeEdit = () => {
+        setEditId(null);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editId) return;
+
+        setIsEditSaving(true);
+        try {
+            let profileData: Record<string, unknown> | undefined;
+
+            if (editForm.role === 'student') {
+                profileData = {
+                    ucn: editForm.ucn,
+                    financing: editForm.financing,
+                    address: editForm.address,
+                    curriculumId: editForm.curriculumId
+                };
+            } else if (editForm.role === 'teacher') {
+                profileData = {
+                    departmentId: editForm.departmentId
+                };
+            }
+
+            await usersApi.update(editId, {
+                username: editForm.username,
+                name: editForm.name,
+                email: editForm.email,
+                phoneNumber: editForm.phoneNumber || undefined,
+                is_admin: editForm.role === 'admin',
+                profile_data: profileData
+            });
+
+            await loadData();
+            closeEdit();
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Грешка при запис!');
+        } finally {
+            setIsEditSaving(false);
+        }
+    };
+
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const passwordError = getPasswordValidationError(formData.password);
+        if (passwordError) {
+            alert(passwordError);
+            return;
+        }
+
         setIsSaving(true);
         try {
             const roleType =
@@ -216,7 +326,11 @@ export const UsersPage = () => {
                                         })
                                     }
                                     required
+                                    minLength={8}
                                 />
+                                <small style={{color: '#666'}}>
+                                    {PASSWORD_REQUIREMENTS_MESSAGE}
+                                </small>
                             </div>
                         </div>
 
@@ -371,6 +485,204 @@ export const UsersPage = () => {
                 </div>
             )}
 
+            {editId && (
+                <div
+                    className="card"
+                    style={{
+                        marginTop: '20px',
+                        padding: '20px',
+                        backgroundColor: '#fff8e6'
+                    }}
+                >
+                    <h3>Редакция на потребител #{editId}</h3>
+                    <p style={{color: '#666', marginBottom: '15px'}}>
+                        Администраторът може да променя данните, но не и
+                        паролата. Потребителят сменя паролата си от „Профил“.
+                    </p>
+                    <form onSubmit={handleEditSubmit}>
+                        <div
+                            style={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                gap: '15px'
+                            }}
+                        >
+                            <div className="form-group">
+                                <label>Потребителско име</label>
+                                <input
+                                    className="form-control"
+                                    value={editForm.username}
+                                    onChange={e =>
+                                        setEditForm({
+                                            ...editForm,
+                                            username: e.target.value
+                                        })
+                                    }
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Пълно име</label>
+                                <input
+                                    className="form-control"
+                                    value={editForm.name}
+                                    onChange={e =>
+                                        setEditForm({
+                                            ...editForm,
+                                            name: e.target.value
+                                        })
+                                    }
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Имейл</label>
+                                <input
+                                    type="email"
+                                    className="form-control"
+                                    value={editForm.email}
+                                    onChange={e =>
+                                        setEditForm({
+                                            ...editForm,
+                                            email: e.target.value
+                                        })
+                                    }
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Телефон</label>
+                                <input
+                                    className="form-control"
+                                    value={editForm.phoneNumber}
+                                    onChange={e =>
+                                        setEditForm({
+                                            ...editForm,
+                                            phoneNumber: e.target.value
+                                        })
+                                    }
+                                />
+                            </div>
+                        </div>
+
+                        {editForm.role === 'student' && (
+                            <div
+                                style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 1fr',
+                                    gap: '15px',
+                                    marginTop: '10px'
+                                }}
+                            >
+                                <input
+                                    className="form-control"
+                                    placeholder="ЕГН"
+                                    value={editForm.ucn}
+                                    onChange={e =>
+                                        setEditForm({
+                                            ...editForm,
+                                            ucn: e.target.value
+                                        })
+                                    }
+                                    required
+                                />
+                                <select
+                                    className="form-control"
+                                    value={editForm.financing}
+                                    onChange={e =>
+                                        setEditForm({
+                                            ...editForm,
+                                            financing: e.target
+                                                .value as typeof editForm.financing
+                                        })
+                                    }
+                                >
+                                    <option value="държавна поръчка">
+                                        Държавна поръчка
+                                    </option>
+                                    <option value="платено обучение">
+                                        Платено обучение
+                                    </option>
+                                </select>
+                                <input
+                                    className="form-control"
+                                    placeholder="Адрес"
+                                    value={editForm.address}
+                                    onChange={e =>
+                                        setEditForm({
+                                            ...editForm,
+                                            address: e.target.value
+                                        })
+                                    }
+                                    required
+                                />
+                                <select
+                                    className="form-control"
+                                    value={editForm.curriculumId}
+                                    onChange={e =>
+                                        setEditForm({
+                                            ...editForm,
+                                            curriculumId: Number(e.target.value)
+                                        })
+                                    }
+                                    required
+                                >
+                                    <option value={0}>
+                                        Изберете учебен план
+                                    </option>
+                                    {curriculums.map(c => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {editForm.role === 'teacher' && (
+                            <div style={{marginTop: '10px'}}>
+                                <select
+                                    className="form-control"
+                                    value={editForm.departmentId}
+                                    onChange={e =>
+                                        setEditForm({
+                                            ...editForm,
+                                            departmentId: Number(e.target.value)
+                                        })
+                                    }
+                                    required
+                                >
+                                    <option value={0}>Изберете катедра</option>
+                                    {departments.map(d => (
+                                        <option key={d.id} value={d.id}>
+                                            {d.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <div style={{marginTop: '20px'}}>
+                            <button
+                                type="submit"
+                                className="btn btn-primary"
+                                disabled={isEditSaving}
+                            >
+                                {isEditSaving ? 'Запазване...' : 'Запази промените'}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn"
+                                onClick={closeEdit}
+                                style={{marginLeft: '10px'}}
+                            >
+                                Отказ
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
             <table
                 border={1}
                 style={{
@@ -386,6 +698,7 @@ export const UsersPage = () => {
                         <th>Име</th>
                         <th>Имейл</th>
                         <th>Роля</th>
+                        {currentUser?.isAdmin && <th>Действия</th>}
                     </tr>
                 </thead>
                 <tbody>
@@ -396,11 +709,28 @@ export const UsersPage = () => {
                             <td>{u.name}</td>
                             <td>{u.email}</td>
                             <td>{getRoleLabel(u)}</td>
+                            {currentUser?.isAdmin && (
+                                <td>
+                                    <button
+                                        className="btn"
+                                        style={{
+                                            backgroundColor: '#ffc107',
+                                            color: '#000'
+                                        }}
+                                        onClick={() => openEdit(u)}
+                                    >
+                                        Редакция
+                                    </button>
+                                </td>
+                            )}
                         </tr>
                     ))}
                     {users.length === 0 && (
                         <tr>
-                            <td colSpan={5} style={{textAlign: 'center'}}>
+                            <td
+                                colSpan={currentUser?.isAdmin ? 6 : 5}
+                                style={{textAlign: 'center'}}
+                            >
                                 Няма намерени потребители.
                             </td>
                         </tr>

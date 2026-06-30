@@ -1,7 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
 import * as userService from '../services/user.service';
 import { hashPassword } from '../utils/hash.util';
-import { User } from '../models/user.model';
+import { validatePassword } from '../utils/password.util';
+
+const rejectPasswordFields = (body: Record<string, unknown>) => {
+    if (
+        body.password !== undefined ||
+        body.passwordHash !== undefined ||
+        body.currentPassword !== undefined ||
+        body.newPassword !== undefined
+    ) {
+        const error = new Error(
+            'Администраторът не може да променя паролата на потребител.',
+        ) as Error & {status: number};
+        error.status = 400;
+        throw error;
+    }
+};
 
 export const getProfile = async (
     req: Request,
@@ -28,17 +43,48 @@ export const updateProfile = async (
 ) => {
     try {
         const userId = res.locals.user.id;
-        const updateData = req.body;
+        rejectPasswordFields(req.body);
 
         const updatedUser = await userService.updateUserProfile(
             userId,
-            updateData,
+            req.body,
         );
 
         res.status(200).json({
             success: true,
             message: 'Профилът е обновен успешно!',
             data: updatedUser,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const changePassword = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const userId = res.locals.user.id;
+        const {currentPassword, newPassword} = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'Моля, въведете текуща и нова парола.',
+            });
+        }
+
+        await userService.changeUserPassword(
+            userId,
+            currentPassword,
+            newPassword,
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Паролата е сменена успешно!',
         });
     } catch (error) {
         next(error);
@@ -64,18 +110,42 @@ export const listUsers = async (
     }
 };
 
+export const getUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const {id} = req.params;
+        const user = await userService.getUserProfile(Number(id));
+
+        res.status(200).json({
+            success: true,
+            data: user,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const createUser = async (
     req: Request,
     res: Response,
     next: NextFunction,
 ) => {
     try {
-        const { role_type, profile_data, password, is_admin, ...baseUserData } =
+        const {role_type, profile_data, password, is_admin, ...baseUserData} =
             req.body;
 
-        if (password) {
-            baseUserData.passwordHash = await hashPassword(password);
+        if (!password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Паролата е задължителна при създаване на потребител.',
+            });
         }
+
+        validatePassword(password);
+        baseUserData.passwordHash = await hashPassword(password);
 
         if (is_admin !== undefined) {
             baseUserData.isAdmin = Boolean(is_admin);
@@ -103,37 +173,25 @@ export const updateUser = async (
     next: NextFunction,
 ) => {
     try {
-        const { id } = req.params;
-        const updateData = req.body;
+        const {id} = req.params;
+        rejectPasswordFields(req.body);
 
-        if (updateData.password) {
-            updateData.passwordHash = await hashPassword(updateData.password);
-            delete updateData.password;
+        const {is_admin, profile_data, ...userData} = req.body;
+
+        if (is_admin !== undefined) {
+            userData.isAdmin = Boolean(is_admin);
         }
 
-        if (updateData.is_admin !== undefined) {
-            updateData.isAdmin = Boolean(updateData.is_admin);
-            delete updateData.is_admin;
-        }
-
-        const updatedUser = await User.query().patchAndFetchById(
+        const updatedUser = await userService.adminUpdateUser(
             Number(id),
-            updateData,
+            userData,
+            profile_data,
         );
-
-        if (!updatedUser) {
-            return res.status(404).json({
-                success: false,
-                message: 'Потребителят не е намерен!',
-            });
-        }
-
-        const { passwordHash, ...safeUserData } = updatedUser as any;
 
         res.status(200).json({
             success: true,
             message: 'Данните са обновени успешно!',
-            data: safeUserData,
+            data: updatedUser,
         });
     } catch (error) {
         next(error);
@@ -146,7 +204,7 @@ export const deleteUser = async (
     next: NextFunction,
 ) => {
     try {
-        const { id } = req.params;
+        const {id} = req.params;
 
         await userService.deleteUser(Number(id));
 

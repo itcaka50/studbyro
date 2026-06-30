@@ -1,6 +1,10 @@
 import React, {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useAuth} from '../../context/auth.context';
+import {
+    getPasswordValidationError,
+    PASSWORD_REQUIREMENTS_MESSAGE
+} from '../../utils/password';
 
 export const Login = () => {
     const navigate = useNavigate();
@@ -17,6 +21,12 @@ export const Login = () => {
 
         if (!loginIdentifier || !password) {
             setError('Моля, попълни всички полета!');
+            return;
+        }
+
+        const passwordError = getPasswordValidationError(password);
+        if (passwordError) {
+            setError(passwordError);
             return;
         }
 
@@ -65,7 +75,11 @@ export const Login = () => {
                             onChange={e => setPassword(e.target.value)}
                             disabled={isLoading}
                             placeholder="••••••••"
+                            minLength={8}
                         />
+                        <small style={{color: '#666'}}>
+                            {PASSWORD_REQUIREMENTS_MESSAGE}
+                        </small>
                     </div>
 
                     <button

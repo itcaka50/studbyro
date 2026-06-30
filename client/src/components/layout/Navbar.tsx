@@ -69,6 +69,13 @@ export const Navbar = () => {
                 <div className="nav-auth">
                     {isAuthenticated ? (
                         <>
+                            <Link
+                                to="/profile"
+                                className="nav-link"
+                                style={{marginRight: '15px'}}
+                            >
+                                Профил
+                            </Link>
                             <span style={{marginRight: '15px'}}>
                                 Здравей, <strong>{user?.username}</strong>
                             </span>
