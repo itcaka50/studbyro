@@ -1,6 +1,7 @@
 import React from 'react';
 import {BrowserRouter as Router, Routes, Route} from 'react-router-dom';
 import {AuthProvider} from './context/auth.context';
+import {ProtectedRoute} from './components/auth/ProtectedRoute';
 
 import {Navbar} from './components/layout/Navbar';
 import {Login} from './pages/Auth/Login';
@@ -25,21 +26,78 @@ const App = () => {
                     <Routes>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/login" element={<Login />} />
-                        <Route path="/faculties" element={<FacultiesPage />} />
+                        <Route
+                            path="/profile"
+                            element={
+                                <ProtectedRoute requireAuth>
+                                    <UserProfilePage />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/faculties"
+                            element={
+                                <ProtectedRoute roles={['admin']}>
+                                    <FacultiesPage />
+                                </ProtectedRoute>
+                            }
+                        />
                         <Route
                             path="/departments"
-                            element={<DepartmentsPage />}
+                            element={
+                                <ProtectedRoute roles={['admin']}>
+                                    <DepartmentsPage />
+                                </ProtectedRoute>
+                            }
                         />
-                        <Route path="/courses" element={<CoursesPage />} />
-                        <Route path="/teachers" element={<TeachersPage />} />
-                        <Route path="/students" element={<StudentsPage />} />
+                        <Route
+                            path="/courses"
+                            element={
+                                <ProtectedRoute roles={['admin']}>
+                                    <CoursesPage />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/teachers"
+                            element={
+                                <ProtectedRoute roles={['admin']}>
+                                    <TeachersPage />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/students"
+                            element={
+                                <ProtectedRoute roles={['admin']}>
+                                    <StudentsPage />
+                                </ProtectedRoute>
+                            }
+                        />
                         <Route
                             path="/curriculums"
-                            element={<CurriculumsPage />}
+                            element={
+                                <ProtectedRoute roles={['admin']}>
+                                    <CurriculumsPage />
+                                </ProtectedRoute>
+                            }
                         />
-                        <Route path="/users" element={<UsersPage />} />
-                        <Route path="/schedules" element={<SchedulesPage />} />
-                        <Route path="/profile" element={<UserProfilePage />} />
+                        <Route
+                            path="/users"
+                            element={
+                                <ProtectedRoute roles={['admin']}>
+                                    <UsersPage />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/schedules"
+                            element={
+                                <ProtectedRoute roles={['admin']}>
+                                    <SchedulesPage />
+                                </ProtectedRoute>
+                            }
+                        />
                     </Routes>
                 </div>
             </Router>
